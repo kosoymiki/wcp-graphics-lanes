@@ -46,8 +46,8 @@ jobs:
       WCP_RELEASE_TAG: vulkan-sdk-arm64-latest
       VULKAN_SDK_LAYOUT_ARCH: arm64
       VULKAN_SDK_SOURCE_ARCH: arm64
-      VULKAN_SDK_DOWNLOAD_URL: ${{ env.VULKAN_SDK_LINUX_SDK_URL }}
-      VULKAN_SDK_LATEST_JSON_URL: ${{ env.VULKAN_SDK_LATEST_JSON_URL }}
+      VULKAN_SDK_DOWNLOAD_URL: https://sdk.lunarg.com/sdk/download/latest/linux/vulkan-sdk.tar.xz
+      VULKAN_SDK_LATEST_JSON_URL: https://vulkan.lunarg.com/sdk/latest/linux.json
 
     steps:
       - name: Checkout
@@ -133,8 +133,8 @@ jobs:
       WCP_RELEASE_TAG: vulkan-sdk-x86_64-latest
       VULKAN_SDK_LAYOUT_ARCH: x86_64
       VULKAN_SDK_SOURCE_ARCH: x86_64
-      VULKAN_SDK_DOWNLOAD_URL: ${{ env.VULKAN_SDK_LINUX_SDK_URL }}
-      VULKAN_SDK_LATEST_JSON_URL: ${{ env.VULKAN_SDK_LATEST_JSON_URL }}
+      VULKAN_SDK_DOWNLOAD_URL: https://sdk.lunarg.com/sdk/download/latest/linux/vulkan-sdk.tar.xz
+      VULKAN_SDK_LATEST_JSON_URL: https://vulkan.lunarg.com/sdk/latest/linux.json
 
     steps:
       - name: Checkout
