@@ -88,6 +88,7 @@ meson setup "${build_dir}" "${source_dir}" \
   -Dstrip=true \
   -Dplatforms=x11 \
   -Dglx=xlib \
+  -Dxlib-lease=disabled \
   -Degl=disabled \
   -Dgbm=disabled \
   -Dllvm=disabled \
