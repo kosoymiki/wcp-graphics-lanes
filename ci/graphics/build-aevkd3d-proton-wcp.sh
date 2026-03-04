@@ -68,16 +68,29 @@ resolve_latest_v3_tag() {
 }
 
 ensure_prefixed_widl() {
-  local compat_bin widl_bin
+  local compat_bin widl_bin candidate
   if command -v x86_64-w64-mingw32-widl >/dev/null 2>&1; then
     return 0
   fi
-  if command -v i686-w64-mingw32-widl >/dev/null 2>&1; then
-    widl_bin="$(command -v i686-w64-mingw32-widl)"
-  elif command -v widl >/dev/null 2>&1; then
-    widl_bin="$(command -v widl)"
-  else
-    printf '[aevkd3d][error] neither x86_64-w64-mingw32-widl nor widl is available in PATH\n' >&2
+  for candidate in \
+    i686-w64-mingw32-widl \
+    widl \
+    /usr/lib/wine/widl \
+    /usr/lib/wine64/widl \
+    /usr/bin/widl
+  do
+    if [[ "${candidate}" == /* ]]; then
+      if [[ -x "${candidate}" ]]; then
+        widl_bin="${candidate}"
+        break
+      fi
+    elif command -v "${candidate}" >/dev/null 2>&1; then
+      widl_bin="$(command -v "${candidate}")"
+      break
+    fi
+  done
+  if [[ -z "${widl_bin:-}" ]]; then
+    printf '[aevkd3d][error] widl not found (x86_64/i686/widl/wine tools). PATH=%s\n' "${PATH}" >&2
     exit 1
   fi
   compat_bin="${WORK_DIR}/compat-bin"
