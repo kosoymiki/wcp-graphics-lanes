@@ -437,6 +437,8 @@ jobs:
           DGVOODOO_ARTIFACT_NAME="${DGVOODOO_ARTIFACT_NAME}" \
           DGVOODOO_SHA256_ARTIFACT_NAME="${DGVOODOO_SHA256_ARTIFACT_NAME}" \
           DGVOODOO_RELEASE_NOTES_NAME="${DGVOODOO_RELEASE_NOTES_NAME}" \
+          DGVOODOO_SOURCE_MODE="auto" \
+          DGVOODOO_UPSTREAM_ASSET_VARIANT="dev64" \
           DGVOODOO_PROFILE_NAME="Ae dgVoodoo" \
           DGVOODOO_PROFILE_DESCRIPTION="Ae dgVoodoo upstream wrapper package (WCP archive lane)" \
           bash ci/graphics/build-dgvoodoo-wcp.sh \

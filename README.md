@@ -35,6 +35,13 @@ Graphics build/control repository for Ae.solator.
 - `.github/workflows/ci-graphics-drivers.yml`
 - `.github/workflows/ci-vulkan-sdk-arm.yml`
 
+## dgVoodoo Source Modes
+
+- `ci/graphics/build-dgvoodoo-wcp.sh` supports:
+  - upstream auto mode (`DGVOODOO_SOURCE_MODE=auto`) with `dev64` asset preference
+  - pinned local ingest (`DGVOODOO_SOURCE_MODE=local`, `DGVOODOO_LOCAL_ZIP=/path/to/dgVoodoo2_86_5_dev64.zip`)
+- This keeps archive output stable (`dgvoodoo.wcp`) while allowing direct import of dev64-formatted upstream ZIPs.
+
 ## Docs
 
 - `docs/REPO_SPLIT_TOPOLOGY.md`

@@ -18,6 +18,9 @@ WORK_DIR="${2:-/tmp/dgvoodoo-wcp-work}"
 : "${DGVOODOO_SOURCE_REPO:=${GITHUB_REPOSITORY:-kosoymiki/wcp-runtime-lanes}}"
 : "${DGVOODOO_SOURCE_TYPE:=github-release}"
 : "${DGVOODOO_SOURCE_VERSION:=rolling-latest}"
+: "${DGVOODOO_SOURCE_MODE:=auto}"
+: "${DGVOODOO_LOCAL_ZIP:=}"
+: "${DGVOODOO_UPSTREAM_ASSET_VARIANT:=dev64}"
 : "${DGVOODOO_FREEWINE_LANE:=freewine11-arm64ec}"
 : "${DGVOODOO_PROXY_ENABLE:=1}"
 : "${DGVOODOO_PROXY_MODE:=core}"
@@ -51,6 +54,84 @@ json_escape() {
   s="${s//$'\r'/\\r}"
   s="${s//$'\t'/\\t}"
   printf '%s' "${s}"
+}
+
+normalize_lower() {
+  local value="${1-}"
+  printf '%s' "${value}" | tr '[:upper:]' '[:lower:]'
+}
+
+resolve_asset_version_name() {
+  local asset_name="${1:?asset name required}"
+  python3 - "${asset_name}" <<'PY'
+import pathlib
+import re
+import sys
+
+name = pathlib.Path(sys.argv[1]).name
+name_no_ext = re.sub(r'(?i)\.(zip|wcp|wcp\.xz|wcp\.zst)$', '', name)
+match = re.search(r'dgVoodoo2_([0-9_]+)(?:_dev64)?', name_no_ext, re.IGNORECASE)
+if match:
+    version = match.group(1).replace('_', '.').strip('.')
+    print(version if version else "local")
+else:
+    print("local")
+PY
+}
+
+resolve_release_asset() {
+  local release_json_path="${1:?release json required}"
+  local variant="${2:?variant required}"
+  python3 - "${release_json_path}" "${variant}" <<'PY'
+import json
+import pathlib
+import re
+import sys
+
+release_json = pathlib.Path(sys.argv[1])
+variant = (sys.argv[2] or "dev64").strip().lower()
+payload = json.loads(release_json.read_text(encoding="utf-8"))
+
+assets = []
+for item in payload.get("assets", []):
+    name = str(item.get("name", "")).strip()
+    url = str(item.get("browser_download_url", "")).strip()
+    if not name or not url:
+        continue
+    low = name.lower()
+    if "_dbg" in low:
+        continue
+    if not re.match(r"^dgvoodoo2_[0-9_]+(?:_dev64)?\.zip$", low):
+        continue
+    assets.append((name, url))
+
+dev64_assets = [entry for entry in assets if "_dev64" in entry[0].lower()]
+full_assets = [entry for entry in assets if "_dev64" not in entry[0].lower()]
+
+ordered = []
+if variant in {"dev64", "auto", "dev64-first", ""}:
+    ordered.extend(dev64_assets)
+    ordered.extend(full_assets)
+elif variant in {"full", "full-first", "legacy"}:
+    ordered.extend(full_assets)
+    ordered.extend(dev64_assets)
+elif variant in {"dev64-only"}:
+    ordered.extend(dev64_assets)
+elif variant in {"full-only"}:
+    ordered.extend(full_assets)
+else:
+    ordered.extend(dev64_assets)
+    ordered.extend(full_assets)
+
+if not ordered:
+    print("")
+    print("")
+    raise SystemExit(0)
+
+name, url = ordered[0]
+print(name)
+print(url)
+PY
 }
 
 extract_export_names() {
@@ -226,35 +307,69 @@ require_cmd python3
 require_cmd objdump
 
 release_json="${WORK_DIR}/release.json"
-curl -fsSL -o "${release_json}" "${DGVOODOO_LATEST_RELEASE_API}"
+source_mode="$(normalize_lower "${DGVOODOO_SOURCE_MODE}")"
+if [[ -n "${DGVOODOO_LOCAL_ZIP}" ]]; then
+  source_mode="local"
+fi
 
-upstream_tag="$(jq -r '.tag_name // ""' "${release_json}")"
-asset_name="$(jq -r '
-  (.assets // [])
-  | map(select((.name | test("^dgVoodoo2_[0-9_]+\\.zip$")) and (.name | contains("_dbg") | not) and (.name | contains("_dev64") | not)))
-  | .[0].name // ""
-' "${release_json}")"
-asset_url="$(jq -r '
-  (.assets // [])
-  | map(select((.name | test("^dgVoodoo2_[0-9_]+\\.zip$")) and (.name | contains("_dbg") | not) and (.name | contains("_dev64") | not)))
-  | .[0].browser_download_url // ""
-' "${release_json}")"
-release_url="$(jq -r '.html_url // ""' "${release_json}")"
-version_name="${upstream_tag#v}"
+case "${source_mode}" in
+  "" | "auto" | "upstream" | "local") ;;
+  *)
+    printf '[dgvoodoo][error] unsupported DGVOODOO_SOURCE_MODE: %s\n' "${DGVOODOO_SOURCE_MODE}" >&2
+    exit 1
+    ;;
+esac
 
-if [[ -z "${upstream_tag}" || -z "${asset_name}" || -z "${asset_url}" || -z "${version_name}" ]]; then
-  printf '[dgvoodoo][error] unable to resolve latest upstream release asset\n' >&2
-  exit 1
+asset_name=""
+asset_url=""
+release_url=""
+upstream_tag=""
+version_name=""
+tracking_mode="latest-release-api+proxy-overlay"
+
+if [[ "${source_mode}" == "local" ]]; then
+  [[ -n "${DGVOODOO_LOCAL_ZIP}" ]] || {
+    printf '[dgvoodoo][error] DGVOODOO_SOURCE_MODE=local requires DGVOODOO_LOCAL_ZIP\n' >&2
+    exit 1
+  }
+  [[ -f "${DGVOODOO_LOCAL_ZIP}" ]] || {
+    printf '[dgvoodoo][error] local dgVoodoo archive not found: %s\n' "${DGVOODOO_LOCAL_ZIP}" >&2
+    exit 1
+  }
+
+  asset_name="$(basename -- "${DGVOODOO_LOCAL_ZIP}")"
+  asset_url="file://${DGVOODOO_LOCAL_ZIP}"
+  release_url="${asset_url}"
+  version_name="$(resolve_asset_version_name "${asset_name}")"
+  upstream_tag="local-v${version_name}"
+  tracking_mode="local-zip+proxy-overlay"
+
+  tmp_zip="${WORK_DIR}/${asset_name}"
+  cp -f "${DGVOODOO_LOCAL_ZIP}" "${tmp_zip}"
+else
+  curl -fsSL -o "${release_json}" "${DGVOODOO_LATEST_RELEASE_API}"
+  upstream_tag="$(jq -r '.tag_name // ""' "${release_json}")"
+  release_url="$(jq -r '.html_url // ""' "${release_json}")"
+
+  mapfile -t resolved_asset < <(resolve_release_asset "${release_json}" "${DGVOODOO_UPSTREAM_ASSET_VARIANT}")
+  asset_name="${resolved_asset[0]:-}"
+  asset_url="${resolved_asset[1]:-}"
+  version_name="${upstream_tag#v}"
+
+  if [[ -z "${upstream_tag}" || -z "${asset_name}" || -z "${asset_url}" || -z "${version_name}" ]]; then
+    printf '[dgvoodoo][error] unable to resolve upstream release asset (variant=%s)\n' "${DGVOODOO_UPSTREAM_ASSET_VARIANT}" >&2
+    exit 1
+  fi
+
+  tmp_zip="${WORK_DIR}/${asset_name}"
+  curl -fsSL -o "${tmp_zip}" "${asset_url}"
 fi
 
 if [[ -n "${DGVOODOO_VERSION_NAME}" && "${DGVOODOO_VERSION_NAME}" != "${version_name}" ]]; then
-  printf '[dgvoodoo][error] upstream latest (%s) differs from pinned version (%s)\n' \
+  printf '[dgvoodoo][error] resolved version (%s) differs from pinned version (%s)\n' \
     "${version_name}" "${DGVOODOO_VERSION_NAME}" >&2
   exit 1
 fi
-
-tmp_zip="${WORK_DIR}/${asset_name}"
-curl -fsSL -o "${tmp_zip}" "${asset_url}"
 
 extract_root="${WORK_DIR}/extract"
 rm -rf "${extract_root}"
@@ -520,7 +635,9 @@ cat > "${wcp_root}/aero-source.json" <<EOF_SOURCE
   "upstreamTag": "$(json_escape "${upstream_tag}")",
   "upstreamAsset": "$(json_escape "${asset_name}")",
   "upstreamReleaseUrl": "$(json_escape "${release_url}")",
-  "trackingMode": "latest-release-api+proxy-overlay",
+  "trackingMode": "$(json_escape "${tracking_mode}")",
+  "sourceMode": "$(json_escape "${source_mode}")",
+  "upstreamAssetVariant": "$(json_escape "${DGVOODOO_UPSTREAM_ASSET_VARIANT}")",
   "proxyMode": "$(json_escape "${DGVOODOO_PROXY_MODE}")",
   "proxyEnabled": "$(json_escape "${DGVOODOO_PROXY_ENABLE}")",
   "proxyDllCount": ${proxy_count},
@@ -623,6 +740,8 @@ Ae dgVoodoo WCP package
 
 RU:
 - Формат: WCP, ставится через Winlator Contents
+- Режим источника: ${source_mode}
+- Вариант апстрим-ассета: ${DGVOODOO_UPSTREAM_ASSET_VARIANT}
 - Upstream tag: ${upstream_tag}
 - Upstream asset: ${asset_name}
 - Upstream release: ${release_url}
@@ -631,6 +750,8 @@ RU:
 
 EN:
 - Format: WCP, installable via Winlator Contents
+- Source mode: ${source_mode}
+- Upstream asset variant: ${DGVOODOO_UPSTREAM_ASSET_VARIANT}
 - Upstream tag: ${upstream_tag}
 - Upstream asset: ${asset_name}
 - Upstream release: ${release_url}
@@ -644,6 +765,8 @@ cat > "${metadata_path}" <<EOF_META
 DGVOODOO_VERSION_NAME=${version_name}
 DGVOODOO_UPSTREAM_TAG=${upstream_tag}
 DGVOODOO_UPSTREAM_ASSET=${asset_name}
+DGVOODOO_SOURCE_MODE=${source_mode}
+DGVOODOO_UPSTREAM_ASSET_VARIANT=${DGVOODOO_UPSTREAM_ASSET_VARIANT}
 DGVOODOO_ARTIFACT_PATH=${artifact_path}
 DGVOODOO_ARTIFACT_NAME=${DGVOODOO_ARTIFACT_NAME}
 DGVOODOO_SHA256_PATH=${sha_path}
