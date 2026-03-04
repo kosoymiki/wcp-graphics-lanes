@@ -464,7 +464,7 @@ jobs:
           DGVOODOO_RELEASE_NOTES_NAME="${{ matrix.notes_name }}" \
           DGVOODOO_PACKAGE_ARCH="${{ matrix.flavor }}" \
           DGVOODOO_LANE_NAME="dgvoodoo-${{ matrix.flavor }}" \
-          DGVOODOO_SOURCE_MODE="auto" \
+          DGVOODOO_SOURCE_MODE="upstream" \
           DGVOODOO_UPSTREAM_ASSET_VARIANT="dev64" \
           DGVOODOO_PROFILE_NAME="Ae dgVoodoo (${{ matrix.flavor }})" \
           DGVOODOO_PROFILE_DESCRIPTION="Ae dgVoodoo upstream wrapper package (WCP archive lane, ${{ matrix.flavor }})" \

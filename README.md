@@ -39,7 +39,7 @@ Graphics build/control repository for Ae.solator.
 ## dgVoodoo Source Modes
 
 - `ci/graphics/build-dgvoodoo-wcp.sh` supports:
-  - upstream auto mode (`DGVOODOO_SOURCE_MODE=auto`) with `dev64` asset preference
+  - upstream mode (`DGVOODOO_SOURCE_MODE=upstream`) with `dev64` asset preference (used in CI)
   - pinned local ingest (`DGVOODOO_SOURCE_MODE=local`, `DGVOODOO_LOCAL_ZIP=/path/to/dgVoodoo2_86_5_dev64.zip`)
 - CI emits two architecture lanes:
   - `dgvoodoo-x86_64.wcp` (`dgvoodoo-x86_64-latest`)
