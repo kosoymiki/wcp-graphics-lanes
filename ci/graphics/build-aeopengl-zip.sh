@@ -95,7 +95,7 @@ meson setup "${build_dir}" "${source_dir}" \
   -Dopengl=true \
   -Dgles1=disabled \
   -Dgles2=disabled \
-  -Dgallium-drivers=freedreno,swrast,zink \
+  -Dgallium-drivers=freedreno,softpipe,zink \
   -Dvulkan-drivers=freedreno \
   -Dfreedreno-kmds=kgsl \
   -Dshared-glapi=enabled

@@ -67,6 +67,26 @@ resolve_latest_v3_tag() {
   printf '%s' "${tag}"
 }
 
+ensure_prefixed_widl() {
+  local compat_bin widl_bin
+  if command -v x86_64-w64-mingw32-widl >/dev/null 2>&1; then
+    return 0
+  fi
+  if command -v i686-w64-mingw32-widl >/dev/null 2>&1; then
+    widl_bin="$(command -v i686-w64-mingw32-widl)"
+  elif command -v widl >/dev/null 2>&1; then
+    widl_bin="$(command -v widl)"
+  else
+    printf '[aevkd3d][error] neither x86_64-w64-mingw32-widl nor widl is available in PATH\n' >&2
+    exit 1
+  fi
+  compat_bin="${WORK_DIR}/compat-bin"
+  mkdir -p "${compat_bin}"
+  ln -sfn "${widl_bin}" "${compat_bin}/x86_64-w64-mingw32-widl"
+  export PATH="${compat_bin}:${PATH}"
+  printf '[aevkd3d] using widl compatibility shim: %s -> %s\n' "${compat_bin}/x86_64-w64-mingw32-widl" "${widl_bin}"
+}
+
 mkdir -p "${OUT_DIR}" "${WORK_DIR}"
 rm -rf "${WORK_DIR}/src" "${WORK_DIR}/build" "${WORK_DIR}/wcp-root"
 
@@ -75,6 +95,7 @@ build_dir="${WORK_DIR}/build"
 wcp_root="${WORK_DIR}/wcp-root"
 stage_dir="${wcp_root}/payload"
 mkdir -p "${build_dir}" "${stage_dir}/x64" "${stage_dir}/x86"
+ensure_prefixed_widl
 
 resolved_tag="$(resolve_latest_v3_tag)"
 git_clone_retry --depth 1 --branch "${resolved_tag}" --recursive --shallow-submodules "${VKD3D_PROTON_GIT_URL}" "${src_dir}"

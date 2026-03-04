@@ -108,8 +108,8 @@ write_mesa_native_file() {
 [binaries]
 c = 'clang'
 cpp = 'clang++'
-ar = 'llvm-ar'
-strip = 'llvm-strip'
+ar = 'ar'
+strip = 'strip'
 pkg-config = '/usr/bin/pkg-config'
 EOF_NATIVE
 }
