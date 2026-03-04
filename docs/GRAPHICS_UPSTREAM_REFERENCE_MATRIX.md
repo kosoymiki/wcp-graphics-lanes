@@ -2,7 +2,7 @@
 
 This is the current external reference snapshot used for graphics package planning.
 
-Date: `2026-03-01`
+Date: `2026-03-04`
 
 ## Upstreams
 
@@ -10,7 +10,6 @@ Date: `2026-03-01`
   - `Mesa3D / freedesktop.org`
   - `doitsujin` (`DXVK`)
   - `HansKristian-Work` (`VKD3D-Proton`)
-  - `dege-diosg` (`dgVoodoo2`)
   - `Arihany` (`WCPHub` reference package index)
 - External Turnip authors monitored for research and diff-analysis only:
   - `StevenMXZ`
@@ -23,7 +22,6 @@ Date: `2026-03-01`
 - DXVK latest upstream tag: `v2.7.1`
 - VKD3D-Proton latest upstream stable tag: `v3.0`
 - VKD3D-Proton latest upstream prerelease tag seen in tags: `v3.0b`
-- dgVoodoo2 latest upstream release tag: `v2.86.5`
 
 ## WCPHub Reference Packages
 
@@ -38,8 +36,7 @@ From `https://raw.githubusercontent.com/Arihany/WinlatorWCPHub/main/pack.json`:
 
 ## Current Packaging Direction
 
-- `AeTurnip`: independent curated ZIP lane from the current Turnip author set, with exact Mesa `main` commit metadata.
-- `AeOpenGLDriver`: independent pinned `profile.json` ZIP lane, with exact Mesa `main` commit metadata.
-- `dgVoodoo`: mirrored upstream ZIP lane through `Contents`.
-- `DXVK` / `VKD3D-Proton`: still sourced via existing `Contents` hub references today, but the target direction is to replace those with our own build lanes once the self-build contract is finalized.
+- `AeTurnip`: source-built ZIP lane from Mesa `main` with explicit AE patchset intake (`common + turnip`).
+- `AeOpenGLDriver`: source-built ZIP lane from Mesa `main` with explicit AE patchset intake (`common + opengl`) and resolved Android X11 fallback libs.
+- `DXVK` / `VKD3D-Proton`: source-built WCP lanes from upstream git tags/heads with embedded AE runtime/forensic contract.
 - `virgl`: runtime lane is still dormant and remains separate from the current driver ZIP package flow.

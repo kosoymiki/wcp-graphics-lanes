@@ -8,8 +8,10 @@
   - release-prep/final-stage gate integration
 - This checklist remains open because UI/device/install behavior still requires
   manual or real-device confirmation.
-- Repository-side taxonomy is now aligned to `FreeWine + graphics contents`
-  split release repos; what remains open is behavioral QA, not metadata/model drift.
+- Repository-side taxonomy is now aligned to split ownership:
+  `WCP Archive` (FreeWine + VulkanSDK + DXVK + VKD3D + dgVoodoo WCP) and
+  `wcp-graphics-lanes` (Turnip + OpenGL provider ZIP lanes).
+  What remains open is behavioral QA, not metadata/model drift.
 - Current blocker snapshot: `adb` is available, but there is no attached device
   in this session yet, so device-side closure cannot be executed right now.
 - Treat this file as the authoritative remaining-plan document for contents work;
@@ -31,13 +33,15 @@
 - [x] `ContentsManager.REMOTE_PROFILES` remains WCP Hub source (`pack.json`) for non-Wine packages
 - [x] `ci/contents/validate-contents-json.py contents/contents.json` passes
 - [x] `FreeWine` entry points to runtime release repo (`wcp-runtime-lanes`) with rolling tag (`freewine11-arm64ec-latest`)
-- [x] Graphics entries point to graphics release repo (`wcp-graphics-lanes`) with per-package rolling tags
+- [x] Runtime/archive entries point to `wcp-runtime-lanes` (`freewine11`, `vulkan-sdk-*`, `dxvk*`, `vkd3d*`)
+- [x] Provider ZIP entries point to graphics release repo (`wcp-graphics-lanes`) (`aeturnip`, `aeopengl-driver`)
+- [x] `dgVoodoo` entry points to archive release repo (`wcp-runtime-lanes`) as WCP (`dgvoodoo.wcp`)
 - [x] Stable bundle release flow keeps `wcp-stable` publish lane in `ci/release/publish-0.9c.sh`
 - [x] `channel`, `delivery`, `displayCategory`, `sourceRepo`, `releaseTag` are present
 - [x] Wine-family entries carry `internalType=wine`; Proton legacy lanes are removed from active overlay
 
 ## Winlator UI behavior
-- [ ] Spinner/category exposes `Wine` lane for FreeWine and graphics lanes for DXVK/VKD3D/Turnip/Vulkan SDK
+- [ ] Spinner/category exposes `Wine` lane for FreeWine and graphics lanes for DXVK/VKD3D/Turnip/Vulkan SDK with correct sourceRepo/releaseTag provenance
 - [ ] Stable `Wine` overlay package (`freewine11`) is visible in the `Wine` lane
 - [ ] Beta/nightly toggle is hidden for `Wine` family tab
 - [ ] Rows show source/provenance line for remote packages (repo + release tag)
@@ -59,7 +63,8 @@
 ## CI/WCP metadata parity
 - [x] `freewine11` nightly build emits `channel=nightly`, `releaseTag=freewine11-arm64ec-latest`, `versionCode=1`
 - [x] `freewine11` nightly build emits `channel=nightly`, `releaseTag=freewine11-arm64ec-latest`, `versionCode=1`
-- [x] Graphics lanes emit stable per-package rolling tags from `wcp-graphics-lanes`
+- [x] DXVK/VKD3D/VulkanSDK lanes emit rolling tags from `wcp-runtime-lanes`
+- [x] Turnip/OpenGL lanes emit rolling tags from `wcp-graphics-lanes`
 - [x] Stable release flow keeps `channel=stable` messaging and `wcp-stable` publish tag
 
 ## Immediate Next Device Pass

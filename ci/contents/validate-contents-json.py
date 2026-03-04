@@ -6,8 +6,8 @@ from pathlib import Path
 
 ALLOWED_CHANNELS = {"stable", "beta", "nightly"}
 ALLOWED_DELIVERY = {"remote", "embedded", ""}
-ALLOWED_TYPES = {"wine", "proton", "vulkansdk", "turnipdriver", "opengldriver", "dgvoodoo", "dxvk", "vkd3d"}
-ALLOWED_INTERNAL_TYPES = {"wine", "proton", "protonge", "protonwine", "vulkansdk", "turnip", "freedreno", "dgvoodoo", "dxvk", "vkd3d"}
+ALLOWED_TYPES = {"wine", "proton", "vulkansdk", "turnipdriver", "opengldriver", "dxvk", "vkd3d"}
+ALLOWED_INTERNAL_TYPES = {"wine", "proton", "protonge", "protonwine", "vulkansdk", "turnip", "freedreno", "dxvk", "vkd3d"}
 EXPECTED_TYPE_BY_INTERNAL = {
     "wine": "wine",
     "proton": "proton",
@@ -16,7 +16,6 @@ EXPECTED_TYPE_BY_INTERNAL = {
     "vulkansdk": "vulkansdk",
     "turnip": "turnipdriver",
     "freedreno": "opengldriver",
-    "dgvoodoo": "dgvoodoo",
     "dxvk": "dxvk",
     "vkd3d": "vkd3d",
 }
@@ -26,14 +25,12 @@ EXPECTED_DISPLAY_BY_TYPE = {
     "vulkansdk": "Vulkan SDK",
     "turnipdriver": "Turnip",
     "opengldriver": "OpenGL Driver",
-    "dgvoodoo": "dgVoodoo",
     "dxvk": "DXVK",
     "vkd3d": "VKD3D",
 }
 WINE_VERSION_RE = re.compile(r"^[0-9]+(?:\.[0-9]+)*(?:-[0-9]+(?:\.[0-9]+)*)?-(x86|x86_64|arm64ec)$")
 VULKAN_SDK_VERSION_RE = re.compile(r"^[0-9]+(?:\.[0-9]+)*-(arm64|x86_64)$")
 GRAPHICS_PROVIDER_VERSION_RE = re.compile(r"^(?:rolling|[0-9]+(?:\.[0-9]+)*)-arm64$")
-DGVOODOO_VERSION_RE = re.compile(r"^[0-9]+(?:\.[0-9]+)*$")
 DXVK_VERSION_RE = re.compile(r"^[0-9]+(?:\.[0-9]+)*(?:-[0-9]+)?(?:-gplasync)?(?:-arm64ec)?$")
 VKD3D_VERSION_RE = re.compile(r"^[0-9]+(?:\.[0-9]+)*(?:[ab][0-9]*)?(?:-arm64ec)?$")
 RUNTIME_RELEASE_REPO = "kosoymiki/wcp-runtime-lanes"
@@ -43,18 +40,189 @@ EXPECTED_SOURCE_REPO_BY_INTERNAL = {
     "proton": RUNTIME_RELEASE_REPO,
     "protonge": RUNTIME_RELEASE_REPO,
     "protonwine": RUNTIME_RELEASE_REPO,
-    "vulkansdk": GRAPHICS_RELEASE_REPO,
+    "vulkansdk": RUNTIME_RELEASE_REPO,
     "turnip": GRAPHICS_RELEASE_REPO,
     "freedreno": GRAPHICS_RELEASE_REPO,
-    "dgvoodoo": GRAPHICS_RELEASE_REPO,
-    "dxvk": GRAPHICS_RELEASE_REPO,
-    "vkd3d": GRAPHICS_RELEASE_REPO,
+    "dxvk": RUNTIME_RELEASE_REPO,
+    "vkd3d": RUNTIME_RELEASE_REPO,
 }
+GRAPHICS_RUNTIME_INTERNAL_TYPES = {"turnip", "freedreno", "dxvk", "vkd3d"}
+GRAPHICS_PROVIDER_INTERNAL_TYPES = {"turnip", "freedreno"}
+GRAPHICS_TRANSLATION_INTERNAL_TYPES = {"dxvk", "vkd3d"}
+EXPECTED_RUNTIME_ROLE_BY_INTERNAL = {
+    "turnip": "graphics-provider",
+    "freedreno": "graphics-provider",
+    "dxvk": "translation-layer",
+    "vkd3d": "translation-layer",
+}
+EXPECTED_RUNTIME_LANE_PREFIX_BY_INTERNAL = {
+    "turnip": "aeturnip",
+    "freedreno": "aeopengl-driver",
+    "dxvk": "aedxvk-gplasync",
+    "vkd3d": "aevkd3d-proton",
+}
+EXPECTED_RUNTIME_FREEWINE_LANE = "freewine11-arm64ec"
+REQUIRED_WRAPPER_PROFILES = ("conservative", "balanced", "aggressive")
 
 
 def fail(msg: str) -> None:
     print(f"[contents-validate][error] {msg}", file=sys.stderr)
     sys.exit(1)
+
+
+def is_string_list(value: object) -> bool:
+    return isinstance(value, list) and bool(value) and all(isinstance(item, str) and item.strip() for item in value)
+
+
+def validate_wrapper_contract(idx: int, runtime_contract: dict) -> None:
+    wrapper_contract = runtime_contract.get("wrapperContract")
+    if not isinstance(wrapper_contract, dict):
+        fail(f"entry {idx} runtimeContract.wrapperContract must be object for translation lanes")
+
+    wrapper_schema = wrapper_contract.get("schemaVersion")
+    if not isinstance(wrapper_schema, int) or wrapper_schema < 1:
+        fail(f"entry {idx} runtimeContract.wrapperContract.schemaVersion must be int >= 1")
+
+    supported_profiles = wrapper_contract.get("supportedProfiles")
+    if not is_string_list(supported_profiles):
+        fail(f"entry {idx} runtimeContract.wrapperContract.supportedProfiles must be non-empty string[]")
+    supported_set = set(supported_profiles)
+    for required in REQUIRED_WRAPPER_PROFILES:
+        if required not in supported_set:
+            fail(
+                f"entry {idx} runtimeContract.wrapperContract.supportedProfiles "
+                f"must include {required}"
+            )
+
+    default_profile = str(wrapper_contract.get("defaultProfile", "")).strip()
+    if not default_profile or default_profile not in supported_set:
+        fail(
+            f"entry {idx} runtimeContract.wrapperContract.defaultProfile must be one of supportedProfiles"
+        )
+
+    profile_env = wrapper_contract.get("profileEnv")
+    if not isinstance(profile_env, dict):
+        fail(f"entry {idx} runtimeContract.wrapperContract.profileEnv must be object")
+    for profile_name in REQUIRED_WRAPPER_PROFILES:
+        env_map = profile_env.get(profile_name)
+        if not isinstance(env_map, dict) or not env_map:
+            fail(
+                f"entry {idx} runtimeContract.wrapperContract.profileEnv.{profile_name} "
+                "must be non-empty object"
+            )
+        for env_key, env_value in env_map.items():
+            if not isinstance(env_key, str) or not env_key.startswith("AERO_"):
+                fail(
+                    f"entry {idx} runtimeContract.wrapperContract.profileEnv.{profile_name} "
+                    f"contains invalid env key: {env_key!r}"
+                )
+            if not isinstance(env_value, str) or not env_value.strip():
+                fail(
+                    f"entry {idx} runtimeContract.wrapperContract.profileEnv.{profile_name}.{env_key} "
+                    "must be non-empty string"
+                )
+
+    route_hints = wrapper_contract.get("routeHints")
+    if not isinstance(route_hints, dict):
+        fail(f"entry {idx} runtimeContract.wrapperContract.routeHints must be object")
+    for route_key in ("primaryProvider", "fallbackProvider", "legacyFallbackEngine"):
+        value = str(route_hints.get(route_key, "")).strip()
+        if not value:
+            fail(
+                f"entry {idx} runtimeContract.wrapperContract.routeHints.{route_key} is required"
+            )
+    if not is_string_list(route_hints.get("legacyTargetApis")):
+        fail(
+            f"entry {idx} runtimeContract.wrapperContract.routeHints.legacyTargetApis "
+            "must be non-empty string[]"
+        )
+
+    soc_class_profiles = wrapper_contract.get("socClassProfiles")
+    if not isinstance(soc_class_profiles, dict) or not soc_class_profiles:
+        fail(f"entry {idx} runtimeContract.wrapperContract.socClassProfiles must be non-empty object")
+    for soc_class, profile_name in soc_class_profiles.items():
+        if not isinstance(soc_class, str) or not soc_class.strip():
+            fail(
+                f"entry {idx} runtimeContract.wrapperContract.socClassProfiles keys "
+                "must be non-empty strings"
+            )
+        if not isinstance(profile_name, str) or profile_name not in supported_set:
+            fail(
+                f"entry {idx} runtimeContract.wrapperContract.socClassProfiles values "
+                "must reference supportedProfiles"
+            )
+
+
+def validate_graphics_runtime_contract(idx: int, item: dict, internal_type: str) -> None:
+    if internal_type not in GRAPHICS_RUNTIME_INTERNAL_TYPES:
+        return
+
+    runtime_contract = item.get("runtimeContract")
+    forensic_contract = item.get("forensicContract")
+    if not isinstance(runtime_contract, dict):
+        fail(f"entry {idx} missing runtimeContract object for internalType={internal_type}")
+    if not isinstance(forensic_contract, dict):
+        fail(f"entry {idx} missing forensicContract object for internalType={internal_type}")
+
+    runtime_schema_version = runtime_contract.get("schemaVersion")
+    if not isinstance(runtime_schema_version, int) or runtime_schema_version < 1:
+        fail(f"entry {idx} runtimeContract.schemaVersion must be int >= 1")
+    forensic_schema_version = forensic_contract.get("schemaVersion")
+    if not isinstance(forensic_schema_version, int) or forensic_schema_version < 1:
+        fail(f"entry {idx} forensicContract.schemaVersion must be int >= 1")
+
+    lane = str(runtime_contract.get("lane", "")).strip()
+    if not lane:
+        fail(f"entry {idx} runtimeContract.lane is required")
+    expected_lane_prefix = EXPECTED_RUNTIME_LANE_PREFIX_BY_INTERNAL[internal_type]
+    if not lane.startswith(expected_lane_prefix):
+        fail(
+            f"entry {idx} runtimeContract.lane for internalType={internal_type} "
+            f"must start with {expected_lane_prefix}: {lane}"
+        )
+
+    role = str(runtime_contract.get("role", "")).strip().lower()
+    expected_role = EXPECTED_RUNTIME_ROLE_BY_INTERNAL[internal_type]
+    if role != expected_role:
+        fail(
+            f"entry {idx} runtimeContract.role for internalType={internal_type} "
+            f"must be {expected_role}: {role}"
+        )
+
+    freewine_lane = str(runtime_contract.get("freewineLane", "")).strip()
+    if freewine_lane != EXPECTED_RUNTIME_FREEWINE_LANE:
+        fail(
+            f"entry {idx} runtimeContract.freewineLane must be "
+            f"{EXPECTED_RUNTIME_FREEWINE_LANE}: {freewine_lane}"
+        )
+
+    if internal_type in GRAPHICS_PROVIDER_INTERNAL_TYPES:
+        provider_lane = str(runtime_contract.get("providerLane", "")).strip()
+        if not provider_lane:
+            fail(f"entry {idx} runtimeContract.providerLane is required for {internal_type}")
+    if internal_type in GRAPHICS_TRANSLATION_INTERNAL_TYPES:
+        provider_lanes = runtime_contract.get("providerLanes")
+        if not is_string_list(provider_lanes):
+            fail(f"entry {idx} runtimeContract.providerLanes must be non-empty string[] for {internal_type}")
+        legacy_fallback = runtime_contract.get("legacyDxFallback")
+        if not isinstance(legacy_fallback, dict):
+            fail(f"entry {idx} runtimeContract.legacyDxFallback must be object for {internal_type}")
+        if str(legacy_fallback.get("engine", "")).strip().lower() != "wined3d":
+            fail(f"entry {idx} runtimeContract.legacyDxFallback.engine must be wined3d for {internal_type}")
+        if not is_string_list(legacy_fallback.get("targetApis")):
+            fail(f"entry {idx} runtimeContract.legacyDxFallback.targetApis must be non-empty string[]")
+        validate_wrapper_contract(idx, runtime_contract)
+
+    translation_layers = runtime_contract.get("translationLayers")
+    if not is_string_list(translation_layers):
+        fail(f"entry {idx} runtimeContract.translationLayers must be non-empty string[]")
+
+    issue_bundle_keys = forensic_contract.get("issueBundleKeys")
+    if not is_string_list(issue_bundle_keys):
+        fail(f"entry {idx} forensicContract.issueBundleKeys must be non-empty string[]")
+    live_topics = forensic_contract.get("liveDiagnosticsTopics")
+    if not is_string_list(live_topics):
+        fail(f"entry {idx} forensicContract.liveDiagnosticsTopics must be non-empty string[]")
 
 
 def main() -> None:
@@ -72,7 +240,6 @@ def main() -> None:
     vulkan_sdk_arches = set()
     turnip_rows = 0
     freedreno_rows = 0
-    dgvoodoo_rows = 0
     dxvk_rows = 0
     vkd3d_rows = 0
     for idx, item in enumerate(data):
@@ -109,8 +276,6 @@ def main() -> None:
             version_ok = WINE_VERSION_RE.match(ver_name)
         elif type_key == "vulkansdk":
             version_ok = VULKAN_SDK_VERSION_RE.match(ver_name)
-        elif type_key == "dgvoodoo":
-            version_ok = DGVOODOO_VERSION_RE.match(ver_name)
         elif type_key == "dxvk":
             version_ok = DXVK_VERSION_RE.match(ver_name)
         elif type_key == "vkd3d":
@@ -126,8 +291,6 @@ def main() -> None:
             turnip_rows += 1
         elif type_key == "opengldriver":
             freedreno_rows += 1
-        elif type_key == "dgvoodoo":
-            dgvoodoo_rows += 1
         elif type_key == "dxvk":
             dxvk_rows += 1
         elif type_key == "vkd3d":
@@ -200,11 +363,6 @@ def main() -> None:
                 fail(f"entry {idx} freedreno row requires arm64 releaseTag: {release_tag}")
             if "arm64" not in artifact_name:
                 fail(f"entry {idx} freedreno row requires arm64 artifactName: {artifact_name}")
-        elif internal_type == "dgvoodoo":
-            if "dgvoodoo" not in release_tag:
-                fail(f"entry {idx} dgvoodoo internalType requires dgvoodoo* releaseTag: {release_tag}")
-            if "dgvoodoo" not in artifact_name:
-                fail(f"entry {idx} dgvoodoo internalType requires dgvoodoo* artifactName: {artifact_name}")
         elif internal_type == "dxvk":
             if "dxvk-gplasync" not in release_tag:
                 fail(f"entry {idx} dxvk internalType requires dxvk-gplasync* releaseTag: {release_tag}")
@@ -245,12 +403,13 @@ def main() -> None:
             fail(f"entry {idx} sha256Url must use sourceRepo release lane ({source_repo}): {sha256_url}")
         if f"/{release_tag}/" not in sha256_url:
             fail(f"entry {idx} sha256Url must use matching releaseTag {release_tag}: {sha256_url}")
-        if type_key in {"turnipdriver", "opengldriver", "dgvoodoo"}:
+        if type_key in {"turnipdriver", "opengldriver"}:
             if not artifact_name.endswith(".zip"):
                 fail(f"entry {idx} artifactName must end with .zip for {type_name}: {artifact_name}")
         else:
             if not artifact_name.endswith(".wcp"):
                 fail(f"entry {idx} artifactName must end with .wcp: {artifact_name}")
+        validate_graphics_runtime_contract(idx, item, internal_type)
 
         key = (type_key, internal_type, ver_name, ver_code)
         if key in seen:
@@ -270,8 +429,6 @@ def main() -> None:
         fail(f"turnipdriver entries must appear once at most; got {turnip_rows}")
     if freedreno_rows not in {0, 1}:
         fail(f"opengldriver entries must appear once at most; got {freedreno_rows}")
-    if dgvoodoo_rows not in {0, 1}:
-        fail(f"dgvoodoo entries must appear once at most; got {dgvoodoo_rows}")
     if dxvk_rows not in {0, 2}:
         fail(f"dxvk entries must appear exactly as generic+arm64ec pair; got {dxvk_rows}")
     if vkd3d_rows not in {0, 2}:

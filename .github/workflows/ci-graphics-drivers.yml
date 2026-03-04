@@ -1,4 +1,4 @@
-name: Build Graphics Driver ZIP Packages
+name: Build Graphics Driver and Wrapper Packages
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
       - "contents/contents.json"
       - "ci/contents/validate-contents-json.py"
       - "ci/validation/check-contents-qa-contract.py"
+      - "ci/validation/check-graphics-package-contract.py"
       - "ci/winlator/artifact-source-map.json"
       - ".github/workflows/ci-graphics-drivers.yml"
   workflow_dispatch:
@@ -25,15 +26,16 @@ env:
   AEO_UPLOAD_ARTIFACTS: "0"
   GRAPHICS_RELEASE_OWNER: kosoymiki
   GRAPHICS_RELEASE_REPO: wcp-graphics-lanes
+  WCP_ARCHIVE_RELEASE_REPO: wcp-runtime-lanes
+  WCP_ARCHIVE_SOURCE_REPO: kosoymiki/wcp-runtime-lanes
   AETURNIP_SOURCE_REPO: kosoymiki/wcp-graphics-lanes
   AEOPENGL_SOURCE_REPO: kosoymiki/wcp-graphics-lanes
-  AEDXVK_SOURCE_REPO: kosoymiki/wcp-graphics-lanes
-  AEVKD3D_SOURCE_REPO: kosoymiki/wcp-graphics-lanes
+  AEDXVK_SOURCE_REPO: kosoymiki/wcp-runtime-lanes
+  AEVKD3D_SOURCE_REPO: kosoymiki/wcp-runtime-lanes
+  DGVOODOO_SOURCE_REPO: kosoymiki/wcp-runtime-lanes
   MESA_SOURCE_GIT_URL: https://gitlab.freedesktop.org/mesa/mesa.git
   AETURNIP_VERSION_NAME: rolling-arm64
   AEOPENGL_VERSION_NAME: rolling-arm64
-  DGVOODOO_LATEST_RELEASE_API: https://api.github.com/repos/dege-diosg/dgVoodoo2/releases/latest
-  DGVOODOO_VERSION_NAME: 2.86.5
   DXVK_GPLASYNC_GIT_URL: https://gitlab.com/Ph42oN/dxvk-gplasync.git
   DXVK_UPSTREAM_GIT_URL: https://github.com/doitsujin/dxvk.git
   AEDXVK_GENERIC_VERSION_NAME: 2.7.1-1-gplasync
@@ -44,9 +46,9 @@ env:
 
 jobs:
   build-aeturnip-arm64:
-    name: Build AeTurnip ARM64 independent ZIP driver
+    name: Build AeTurnip ARM64 source-built ZIP driver
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 120
     env:
       AETURNIP_RELEASE_NAME: AeTurnip ARM64 Latest
       AETURNIP_RELEASE_TAG: aeturnip-arm64-latest
@@ -58,7 +60,20 @@ jobs:
       - name: Setup build environment
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends curl jq unzip zip git
+          sudo apt-get install -y --no-install-recommends \
+            curl jq zip git meson ninja-build pkg-config python3 python3-mako python3-ply \
+            bison flex ccache dpkg-dev
+
+      - name: Setup Android NDK
+        id: setup_ndk_turnip
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r29
+
+      - name: Export NDK environment
+        run: |
+          printf 'ANDROID_NDK_ROOT=%s\n' '${{ steps.setup_ndk_turnip.outputs.ndk-path }}' >> "${GITHUB_ENV}"
+          printf 'ANDROID_NDK_HOME=%s\n' '${{ steps.setup_ndk_turnip.outputs.ndk-path }}' >> "${GITHUB_ENV}"
 
       - name: Build AeTurnip ARM64 ZIP driver
         run: |
@@ -68,6 +83,12 @@ jobs:
           while IFS='=' read -r key value; do
             printf '%s=%s\n' "${key}" "${value}" >> "${GITHUB_ENV}"
           done < "${RUNNER_TEMP}/aeturnip-out/aeturnip-metadata.env"
+
+      - name: Validate AeTurnip runtime contract
+        run: |
+          python3 ci/validation/check-graphics-package-contract.py \
+            --artifact "${AETURNIP_ARTIFACT_PATH}" \
+            --lane aeturnip
 
       - name: Upload AeTurnip artifact
         if: env.AEO_UPLOAD_ARTIFACTS == '1'
@@ -88,11 +109,8 @@ jobs:
             echo
             echo "- Mesa exact main ref: \`${MESA_MAIN_COMMIT}\`"
             echo "- Mesa nearest stable tag: \`mesa-${MESA_STABLE_VERSION}\`"
-            echo "- Provider: \`${AETURNIP_SELECTED_PROVIDER}\`"
-            echo "- Source repo: \`${AETURNIP_SELECTED_REPO}\`"
-            echo "- Source release: \`${AETURNIP_SELECTED_RELEASE_TAG}\`"
-            echo "- Source asset: \`${AETURNIP_SELECTED_ASSET_NAME}\`"
-            echo "- Payload mode: \`independent-turnip-zip\`"
+            echo "- Payload mode: \`mesa-source-build\`"
+            echo "- Applied patches: \`${AETURNIP_PATCH_COUNT}\`"
             echo "- Artifact: \`${AETURNIP_ARTIFACT_NAME}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
@@ -113,9 +131,9 @@ jobs:
           bodyFile: ${{ env.AETURNIP_RELEASE_NOTES }}
 
   build-aeopengl-arm64:
-    name: Build AeOpenGLDriver ARM64 independent ZIP overlay
+    name: Build AeOpenGLDriver ARM64 source-built ZIP overlay
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 180
     env:
       AEOPENGL_RELEASE_NAME: AeOpenGLDriver ARM64 Latest
       AEOPENGL_RELEASE_TAG: aeopengl-driver-arm64-latest
@@ -127,7 +145,20 @@ jobs:
       - name: Setup build environment
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends zip zstd git
+          sudo apt-get install -y --no-install-recommends \
+            zip zstd git curl meson ninja-build pkg-config python3 python3-mako python3-ply \
+            bison flex ccache dpkg-dev
+
+      - name: Setup Android NDK
+        id: setup_ndk_opengl
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r29
+
+      - name: Export NDK environment
+        run: |
+          printf 'ANDROID_NDK_ROOT=%s\n' '${{ steps.setup_ndk_opengl.outputs.ndk-path }}' >> "${GITHUB_ENV}"
+          printf 'ANDROID_NDK_HOME=%s\n' '${{ steps.setup_ndk_opengl.outputs.ndk-path }}' >> "${GITHUB_ENV}"
 
       - name: Build AeOpenGLDriver ARM64 ZIP overlay
         run: |
@@ -137,6 +168,12 @@ jobs:
           while IFS='=' read -r key value; do
             printf '%s=%s\n' "${key}" "${value}" >> "${GITHUB_ENV}"
           done < "${RUNNER_TEMP}/aeopengl-out/aeopengl-metadata.env"
+
+      - name: Validate AeOpenGL runtime contract
+        run: |
+          python3 ci/validation/check-graphics-package-contract.py \
+            --artifact "${AEOPENGL_ARTIFACT_PATH}" \
+            --lane aeopengl-driver
 
       - name: Upload AeOpenGL artifact
         if: env.AEO_UPLOAD_ARTIFACTS == '1'
@@ -158,8 +195,10 @@ jobs:
             echo "- Mesa exact main ref: \`${MESA_MAIN_COMMIT}\`"
             echo "- Mesa nearest stable tag: \`mesa-${MESA_STABLE_VERSION}\`"
             echo "- Artifact: \`${AEOPENGL_ARTIFACT_NAME}\`"
-            echo "- Payload source ref: \`${AEOPENGL_PAYLOAD_RESOLVED_REF}\`"
-            echo "- Payload mode: \`external-pinned-overlay\`"
+            echo "- Payload mode: \`mesa-source-build\`"
+            echo "- Applied patches: \`${AEOPENGL_PATCH_COUNT}\`"
+            echo "- Resolved libGL source: \`${AEOPENGL_RESOLVED_LIBGL}\`"
+            echo "- Resolved libglapi source: \`${AEOPENGL_RESOLVED_LIBGLAPI}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Publish to GitHub Release
@@ -177,70 +216,6 @@ jobs:
           artifacts: ${{ env.AEOPENGL_ARTIFACT_PATH }},${{ env.AEOPENGL_SHA256_PATH }}
           artifactErrorsFailBuild: true
           bodyFile: ${{ env.AEOPENGL_RELEASE_NOTES }}
-
-  build-dgvoodoo-latest:
-    name: Build dgVoodoo latest ZIP mirror
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    env:
-      DGVOODOO_RELEASE_NAME: dgVoodoo Latest
-      DGVOODOO_RELEASE_TAG: dgvoodoo-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup build environment
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends curl jq unzip
-
-      - name: Build dgVoodoo latest ZIP mirror
-        run: |
-          bash ci/graphics/build-dgvoodoo-zip.sh \
-            "${RUNNER_TEMP}/dgvoodoo-out" \
-            "${RUNNER_TEMP}/dgvoodoo-work"
-          while IFS='=' read -r key value; do
-            printf '%s=%s\n' "${key}" "${value}" >> "${GITHUB_ENV}"
-          done < "${RUNNER_TEMP}/dgvoodoo-out/dgvoodoo-metadata.env"
-
-      - name: Upload dgVoodoo artifact
-        if: env.AEO_UPLOAD_ARTIFACTS == '1'
-        uses: actions/upload-artifact@v6
-        with:
-          name: dgvoodoo-latest
-          path: |
-            ${{ env.DGVOODOO_ARTIFACT_PATH }}
-            ${{ env.DGVOODOO_SHA256_PATH }}
-            ${{ env.DGVOODOO_RELEASE_NOTES }}
-          compression-level: 0
-          retention-days: 7
-
-      - name: Publish summary
-        run: |
-          {
-            echo "## dgVoodoo"
-            echo
-            echo "- Upstream tag: \`${DGVOODOO_UPSTREAM_TAG}\`"
-            echo "- Upstream asset: \`${DGVOODOO_UPSTREAM_ASSET}\`"
-            echo "- Artifact: \`${DGVOODOO_ARTIFACT_NAME}\`"
-          } >> "${GITHUB_STEP_SUMMARY}"
-
-      - name: Publish to GitHub Release
-        if: github.event_name != 'pull_request'
-        uses: ncipollo/release-action@v1
-        with:
-          token: ${{ secrets.AEO_RELEASE_TOKEN || github.token }}
-          owner: ${{ env.GRAPHICS_RELEASE_OWNER }}
-          repo: ${{ env.GRAPHICS_RELEASE_REPO }}
-          tag: ${{ env.DGVOODOO_RELEASE_TAG }}
-          name: ${{ env.DGVOODOO_RELEASE_NAME }}
-          allowUpdates: true
-          prerelease: true
-          removeArtifacts: true
-          artifacts: ${{ env.DGVOODOO_ARTIFACT_PATH }},${{ env.DGVOODOO_SHA256_PATH }}
-          artifactErrorsFailBuild: true
-          bodyFile: ${{ env.DGVOODOO_RELEASE_NOTES }}
 
   build-aedxvk-gplasync:
     name: Build AeDXVK GPLAsync source WCP
@@ -294,6 +269,12 @@ jobs:
             printf '%s=%s\n' "${key}" "${value}" >> "${GITHUB_ENV}"
           done < "${RUNNER_TEMP}/aedxvk-out/aedxvk-metadata.env"
 
+      - name: Validate AeDXVK runtime contract
+        run: |
+          python3 ci/validation/check-graphics-package-contract.py \
+            --artifact "${AEDXVK_ARTIFACT_PATH}" \
+            --lane aedxvk-gplasync
+
       - name: Upload AeDXVK artifact
         if: env.AEO_UPLOAD_ARTIFACTS == '1'
         uses: actions/upload-artifact@v6
@@ -322,7 +303,7 @@ jobs:
         with:
           token: ${{ secrets.AEO_RELEASE_TOKEN || github.token }}
           owner: ${{ env.GRAPHICS_RELEASE_OWNER }}
-          repo: ${{ env.GRAPHICS_RELEASE_REPO }}
+          repo: ${{ env.WCP_ARCHIVE_RELEASE_REPO }}
           tag: ${{ matrix.release_tag }}
           name: ${{ matrix.release_name }}
           allowUpdates: true
@@ -383,6 +364,12 @@ jobs:
             printf '%s=%s\n' "${key}" "${value}" >> "${GITHUB_ENV}"
           done < "${RUNNER_TEMP}/aevkd3d-out/aevkd3d-metadata.env"
 
+      - name: Validate AeVKD3D runtime contract
+        run: |
+          python3 ci/validation/check-graphics-package-contract.py \
+            --artifact "${AEVKD3D_ARTIFACT_PATH}" \
+            --lane aevkd3d-proton
+
       - name: Upload AeVKD3D artifact
         if: env.AEO_UPLOAD_ARTIFACTS == '1'
         uses: actions/upload-artifact@v6
@@ -411,7 +398,7 @@ jobs:
         with:
           token: ${{ secrets.AEO_RELEASE_TOKEN || github.token }}
           owner: ${{ env.GRAPHICS_RELEASE_OWNER }}
-          repo: ${{ env.GRAPHICS_RELEASE_REPO }}
+          repo: ${{ env.WCP_ARCHIVE_RELEASE_REPO }}
           tag: ${{ matrix.release_tag }}
           name: ${{ matrix.release_name }}
           allowUpdates: true
@@ -420,3 +407,87 @@ jobs:
           artifacts: ${{ env.AEVKD3D_ARTIFACT_PATH }},${{ env.AEVKD3D_SHA256_PATH }}
           artifactErrorsFailBuild: true
           bodyFile: ${{ env.AEVKD3D_RELEASE_NOTES }}
+
+  build-dgvoodoo-wcp:
+    name: Build dgVoodoo WCP package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      DGVOODOO_RELEASE_NAME: Ae dgVoodoo Latest
+      DGVOODOO_RELEASE_TAG: dgvoodoo-latest
+      DGVOODOO_ARTIFACT_NAME: dgvoodoo.wcp
+      DGVOODOO_SHA256_ARTIFACT_NAME: SHA256SUMS-dgvoodoo.txt
+      DGVOODOO_RELEASE_NOTES_NAME: RELEASE_NOTES-dgvoodoo.md
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            curl jq unzip tar xz-utils python3 \
+            binutils mingw-w64 g++-mingw-w64-x86-64 g++-mingw-w64-i686
+
+      - name: Build dgVoodoo WCP
+        run: |
+          DGVOODOO_SOURCE_REPO="${DGVOODOO_SOURCE_REPO}" \
+          DGVOODOO_RELEASE_TAG="${DGVOODOO_RELEASE_TAG}" \
+          DGVOODOO_ARTIFACT_NAME="${DGVOODOO_ARTIFACT_NAME}" \
+          DGVOODOO_SHA256_ARTIFACT_NAME="${DGVOODOO_SHA256_ARTIFACT_NAME}" \
+          DGVOODOO_RELEASE_NOTES_NAME="${DGVOODOO_RELEASE_NOTES_NAME}" \
+          DGVOODOO_PROFILE_NAME="Ae dgVoodoo" \
+          DGVOODOO_PROFILE_DESCRIPTION="Ae dgVoodoo upstream wrapper package (WCP archive lane)" \
+          bash ci/graphics/build-dgvoodoo-wcp.sh \
+            "${RUNNER_TEMP}/dgvoodoo-out" \
+            "${RUNNER_TEMP}/dgvoodoo-work"
+          while IFS='=' read -r key value; do
+            printf '%s=%s\n' "${key}" "${value}" >> "${GITHUB_ENV}"
+          done < "${RUNNER_TEMP}/dgvoodoo-out/dgvoodoo-metadata.env"
+
+      - name: Validate dgVoodoo runtime contract
+        run: |
+          python3 ci/validation/check-graphics-package-contract.py \
+            --artifact "${DGVOODOO_ARTIFACT_PATH}" \
+            --lane dgvoodoo
+
+      - name: Upload dgVoodoo artifact
+        if: env.AEO_UPLOAD_ARTIFACTS == '1'
+        uses: actions/upload-artifact@v6
+        with:
+          name: dgvoodoo-wcp
+          path: |
+            ${{ env.DGVOODOO_ARTIFACT_PATH }}
+            ${{ env.DGVOODOO_SHA256_PATH }}
+            ${{ env.DGVOODOO_RELEASE_NOTES }}
+          compression-level: 0
+          retention-days: 7
+
+      - name: Publish summary
+        run: |
+          {
+            echo "## dgVoodoo"
+            echo
+            echo "- Upstream tag: \`${DGVOODOO_UPSTREAM_TAG}\`"
+            echo "- Upstream asset: \`${DGVOODOO_UPSTREAM_ASSET}\`"
+            echo "- Proxy mode: \`${DGVOODOO_PROXY_MODE}\`"
+            echo "- Proxy DLL count: \`${DGVOODOO_PROXY_DLL_COUNT}\`"
+            echo "- Artifact: \`${DGVOODOO_ARTIFACT_NAME}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Publish to GitHub Release
+        if: github.event_name != 'pull_request'
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.AEO_RELEASE_TOKEN || github.token }}
+          owner: ${{ env.GRAPHICS_RELEASE_OWNER }}
+          repo: ${{ env.WCP_ARCHIVE_RELEASE_REPO }}
+          tag: ${{ env.DGVOODOO_RELEASE_TAG }}
+          name: ${{ env.DGVOODOO_RELEASE_NAME }}
+          allowUpdates: true
+          prerelease: true
+          removeArtifacts: true
+          artifacts: ${{ env.DGVOODOO_ARTIFACT_PATH }},${{ env.DGVOODOO_SHA256_PATH }}
+          artifactErrorsFailBuild: true
+          bodyFile: ${{ env.DGVOODOO_RELEASE_NOTES }}

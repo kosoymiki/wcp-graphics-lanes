@@ -1,53 +1,57 @@
 # Content Packages Architecture (Ae.solator)
 
 ## Goal
-`Contents` in Ae.solator must clearly separate:
-- local installed packages,
-- downloadable packages,
-- stable vs beta/nightly channels,
-without implying that our Wine/Proton packages are embedded inside the APK.
 
-## Source of truth
-- Repository file: `contents/contents.json`
-- Runtime URL in app: `raw.githubusercontent.com/<repo>/main/contents/contents.json`
-- Package assets: GitHub Releases of this repository (`wcp-stable` + per-package rolling `*-latest` tags)
+`Contents` must expose package provenance and install intent clearly:
 
-## Entry model (extended, backward-compatible)
-Required legacy fields still supported:
-- `type`, `verName`, `verCode`, `remoteUrl`
+- runtime/archive WCP lanes,
+- graphics provider ZIP lanes,
+- stable remote delivery without implying APK-embedded payloads.
 
-New/extended fields used by this fork:
-- `channel`: `stable | beta | nightly` (primary visibility filter)
-- `delivery`: `remote | embedded` (UI honesty; current WCP entries use `remote`)
-- `internalType`: Wine-family subtype (`wine | proton | protonge | protonwine`) for deterministic package identity
-- `displayCategory`: UI label override; current overlay mirrors the top-level family category (`Wine` or `Proton`)
-- `sourceRepo`: provenance (`owner/repo`)
-- `releaseTag`: release source (`wcp-stable` or per-package rolling tag like `wine-11-arm64ec-latest`)
+## Sources of Truth
 
-## Filtering policy
-1. Stable entries are always visible.
-2. `Show beta / nightly` toggle controls `beta` and `nightly` entries for non-Wine-family content lanes.
-3. The repo-backed Wine/Proton overlay is intentionally presented as a stable-only track in UI, even when the release tag is a rolling `*-latest` tag.
-4. Legacy entries without `channel` use fallback heuristics (`beta/nightly` in metadata/URL).
+- Metadata index: `contents/contents.json`
+- Artifact parity map: `ci/winlator/artifact-source-map.json`
+- App overlay consumer: `kosoymiki/aesolator` (`ContentsManager.REMOTE_WINE_PROTON_OVERLAY`)
 
-## Type and display mapping
-- Top-level type is now explicit: `Wine` for Wine rows, `Proton` for Proton-family rows.
-- Wine-family subtype remains in `internalType` (`wine/proton/protonge/protonwine`) for deterministic package identity and backward-compatible heuristics.
-- UI display category mirrors the top-level type (`Wine` or `Proton`) instead of collapsing both into one label.
-- Winlator still treats both categories as one runtime family for install/update and compatibility code paths.
+## Release Ownership
 
-## Turnip vs Contents
-- Turnip driver downloads remain upstream-sourced and are handled by `Adrenotools`.
-- Wine/Proton content packages are distributed from this repo releases and surfaced through `Contents`.
+- `kosoymiki/wcp-runtime-lanes` (**WCP Archive**):
+  - `freewine11-arm64ec`
+  - `vulkan-sdk-*`
+  - `dxvk-gplasync*`
+  - `vkd3d-proton*`
+  - `dgvoodoo`
+- `kosoymiki/wcp-graphics-lanes`:
+  - `aeturnip-arm64.zip`
+  - `aeopengl-driver-arm64.zip`
 
-## Graphics translation payload families
+`sourceRepo` and artifact URLs must match this ownership model exactly.
 
-Contents metadata and release notes should keep naming consistent for these
-external payload families:
+## Entry Model
 
-- `DXVK`
-- `VKD3D`
-- `D8VK`
+Mandatory metadata fields:
 
-## Packaging metadata propagation
-WCP build scripts inject the same metadata into `profile.json` (`type`, `channel`, `delivery`, `displayCategory`, `sourceRepo`, `releaseTag`) so installed packages retain the same provenance and family category as the remote overlay row.
+- `type`, `internalType`, `verName`, `verCode`
+- `channel`, `delivery`, `displayCategory`
+- `sourceRepo`, `releaseTag`, `artifactName`
+- `remoteUrl`, `sha256Url`
+
+Graphics/runtime contract fields:
+
+- `runtimeContract` for `turnip` / `freedreno` / `dxvk` / `vkd3d`
+- `forensicContract` for issue-bundle/live diagnostics key-space
+- `wrapperContract` for translation lanes (`dxvk`, `vkd3d`)
+
+## Routing Policy
+
+1. Vulkan-first route is default (`turnip-vulkan`).
+2. OpenGL fallback lane remains explicit (`freedreno-opengl` / `wined3d` legacy fallback).
+3. Translation lanes (DXVK/VKD3D/dgVoodoo) are WCP Archive lanes, even if built from graphics CI.
+4. Provider lanes (Turnip/OpenGL) remain graphics ZIP lanes.
+
+## Contract Propagation
+
+Build scripts must embed the same lane/provenance contract into payload metadata
+so `contents/contents.json`, `artifact-source-map.json`, and final artifacts stay
+in sync for diagnostics and reproducible installs.

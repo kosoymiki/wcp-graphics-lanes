@@ -5,7 +5,7 @@ the current mainline and which ones require a separate architecture lane.
 
 ## Status Snapshot
 
-Date: `2026-03-01`
+Date: `2026-03-04`
 
 Current mainline accepts only contract-safe, observable transfers. We do not
 blind-import donor graphics stacks into the current Winlator runtime.
@@ -29,37 +29,29 @@ blind-import donor graphics stacks into the current Winlator runtime.
 ### `dgVoodoo2`
 
 - Source: `https://dege.freeweb.hu/`
-- Status: `partially integrated (local-import lane only)`
-- Latest upstream intake checked on `2026-03-01`: official readme advertises `dgVoodoo 2.86.5`
-- Safe current rule:
-  - do not redistribute `dgVoodoo` as a bundled launcher/framework package
-  - only support full user-supplied ZIP import and per-title local staging
-- Adopted now:
-  - explicit `dgVoodoo` DX route in UI/runtime
-  - local ZIP import lane
-  - per-title local staging next to target executable
-  - backup/restore of pre-existing local wrapper files during staging cleanup
-  - fallback back to `WineD3D` when staging is unavailable
-- Still required before deeper integration:
-  - fuller per-title config surface
-  - richer architecture detection than the current `auto/x86/x64` heuristic
-  - dedicated device/regression matrix for local stage success across title classes
+- Status: `active as archive WCP lane`
+- Current rule:
+  - active `dgVoodoo` package lane in `Contents` (`dgvoodoo.wcp`)
+  - release host: `wcp-runtime-lanes` (`dgvoodoo-latest`)
+  - build/proxy orchestration owner: `wcp-graphics-lanes`
+  - translation route contracts include `dgVoodoo` as legacy API lane with explicit fallback to `WineD3D`
 
 ### `freedreno` / `Turnip` / Gallium
 
 - Source: `https://docs.mesa3d.org/drivers/freedreno.html`
-- Status: `partially adopted`, `provider split started`
+- Status: `source-build lane active`, `provider split active`
 - Current mainline:
-  - already carries Turnip-oriented wrapper flow through adrenotools
+  - `AeTurnip` is built from Mesa upstream sources in CI
+  - `AeOpenGLDriver` fallback is built from Mesa upstream sources in CI
   - now carries separate internal provider contract fields for:
     - `Vulkan provider` (`turnip` vs `system`)
     - `OpenGL provider` (`zink`, `freedreno-gallium`, `system`)
     - `OpenGL fallback` (`freedreno-gallium`, `system`, `none`)
   - default policy is now `Vulkan-first` (`Turnip + Zink`) with `freedreno-gallium` fallback
 - Required before deeper integration:
-  - multi-driver package model with explicit OpenGL/Vulkan pairing in `Contents`
-  - loader contract that can select Vulkan and Gallium pieces independently at the package layer, not only in env policy
-  - device/runtime matrix to prevent mismatched OpenGL/Vulkan providers
+  - expand patchset quality gates per lane (`turnip` vs `opengl`)
+  - device/runtime matrix to prevent mismatched OpenGL/Vulkan providers on older SoCs
+  - optional virgl lane without coupling to Turnip/OpenGL package ownership
 
 ### `virgl`
 
@@ -100,7 +92,7 @@ fallback path, and regression gate.
 
 Current progression for deeper graphics work remains:
 
-1. finish and harden the `dgVoodoo` local-import lane
-2. split `Turnip Vulkan` and `freedreno-gallium OpenGL` into separate providers
+1. keep `AeTurnip` and `AeOpenGLDriver` source-build lanes green on latest Mesa
+2. keep `Turnip Vulkan` and `freedreno-gallium OpenGL` providers separated in package/runtime routing
 3. activate the dormant `virgl` lane with explicit routing/fallback
 4. design `AeroXServer` as a new backend behind adapters, not as a blind rewrite

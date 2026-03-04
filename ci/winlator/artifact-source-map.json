@@ -17,56 +17,356 @@
     "vulkansdkarm64": {
       "kind": "wcp",
       "description": "Vulkan SDK ARM64 installable contents package",
-      "remoteUrl": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/vulkan-sdk-arm64-latest/vulkan-sdk-arm64.wcp",
-      "sha256Url": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/vulkan-sdk-arm64-latest/SHA256SUMS-vulkan-sdk-arm64.txt"
+      "remoteUrl": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/vulkan-sdk-arm64-latest/vulkan-sdk-arm64.wcp",
+      "sha256Url": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/vulkan-sdk-arm64-latest/SHA256SUMS-vulkan-sdk-arm64.txt"
     },
     "vulkansdkx86_64": {
       "kind": "wcp",
       "description": "Vulkan SDK x86_64 installable contents package",
-      "remoteUrl": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/vulkan-sdk-x86_64-latest/vulkan-sdk-x86_64.wcp",
-      "sha256Url": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/vulkan-sdk-x86_64-latest/SHA256SUMS-vulkan-sdk-x86_64.txt"
+      "remoteUrl": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/vulkan-sdk-x86_64-latest/vulkan-sdk-x86_64.wcp",
+      "sha256Url": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/vulkan-sdk-x86_64-latest/SHA256SUMS-vulkan-sdk-x86_64.txt"
     },
     "aedxvkgplasync": {
       "kind": "wcp",
       "description": "AeDXVK GPLAsync source-built WCP package (generic)",
-      "remoteUrl": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/dxvk-gplasync-latest/dxvk-gplasync.wcp",
-      "sha256Url": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/dxvk-gplasync-latest/SHA256SUMS-dxvk-gplasync.txt"
+      "remoteUrl": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/dxvk-gplasync-latest/dxvk-gplasync.wcp",
+      "sha256Url": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/dxvk-gplasync-latest/SHA256SUMS-dxvk-gplasync.txt",
+      "runtimeContract": {
+        "lane": "aedxvk-gplasync",
+        "role": "translation-layer",
+        "freewineLane": "freewine11-arm64ec",
+        "providerLanes": ["turnip-vulkan", "freedreno-opengl"],
+        "translationLayers": ["dxvk", "vkd3d-proton", "wined3d", "zink"],
+        "providerRoutePolicy": {
+          "primary": "turnip-vulkan",
+          "fallback": "freedreno-opengl",
+          "fallbackReasonHint": "vulkan-unavailable-or-unstable"
+        },
+        "legacyDxFallback": {
+          "engine": "wined3d",
+          "targetApis": ["dx8", "dx9"],
+          "activationHint": "force-gl-fallback-for-legacy"
+        },
+        "wrapperContract": {
+          "schemaVersion": 1,
+          "defaultProfile": "balanced",
+          "supportedProfiles": ["conservative", "balanced", "aggressive"],
+          "profileEnv": {
+            "conservative": {
+              "AERO_DXVK_FEATURE_LEVEL": "compat",
+              "AERO_DXVK_QUEUE_STRATEGY": "safe",
+              "AERO_DXVK_ROUTE_MODE": "turnip-first",
+              "AERO_DXVK_GL_FALLBACK": "1",
+              "AERO_DXVK_LEGACY_DX89_PATH": "wined3d",
+              "AERO_VKD3D_FEATURE_LEVEL": "compat",
+              "AERO_VKD3D_ROUTE_MODE": "turnip-first",
+              "AERO_VKD3D_GL_FALLBACK": "1"
+            },
+            "balanced": {
+              "AERO_DXVK_FEATURE_LEVEL": "default",
+              "AERO_DXVK_QUEUE_STRATEGY": "balanced",
+              "AERO_DXVK_ROUTE_MODE": "turnip-first",
+              "AERO_DXVK_GL_FALLBACK": "1",
+              "AERO_DXVK_LEGACY_DX89_PATH": "wined3d",
+              "AERO_VKD3D_FEATURE_LEVEL": "default",
+              "AERO_VKD3D_ROUTE_MODE": "turnip-first",
+              "AERO_VKD3D_GL_FALLBACK": "1"
+            },
+            "aggressive": {
+              "AERO_DXVK_FEATURE_LEVEL": "performance",
+              "AERO_DXVK_QUEUE_STRATEGY": "aggressive",
+              "AERO_DXVK_ROUTE_MODE": "turnip-first",
+              "AERO_DXVK_GL_FALLBACK": "1",
+              "AERO_DXVK_LEGACY_DX89_PATH": "wined3d",
+              "AERO_VKD3D_FEATURE_LEVEL": "performance",
+              "AERO_VKD3D_ROUTE_MODE": "turnip-first",
+              "AERO_VKD3D_GL_FALLBACK": "1"
+            }
+          },
+          "routeHints": {
+            "primaryProvider": "turnip-vulkan",
+            "fallbackProvider": "freedreno-opengl",
+            "legacyFallbackEngine": "wined3d",
+            "legacyTargetApis": ["dx8", "dx9"]
+          },
+          "socClassProfiles": {
+            "adreno-6xx-and-older": "conservative",
+            "adreno-7xx": "balanced",
+            "xclipse-rdna-mobile": "balanced",
+            "mali-g7xx-or-newer": "aggressive",
+            "unknown": "balanced"
+          }
+        }
+      },
+      "forensic": {
+        "issueBundleKeys": ["graphics-runtime-matrix.json", "runtime-mismatch-matrix.json", "runtime-conflict-contour.json"],
+        "liveDiagnosticsTopics": ["RUNTIME_GRAPHICS_SUITABILITY", "RUNTIME_DX_ROUTE_POLICY", "RUNTIME_UPSCALE_RUNTIME_MATRIX"]
+      }
     },
     "aedxvkgplasyncarm64ec": {
       "kind": "wcp",
       "description": "AeDXVK GPLAsync source-built WCP package (ARM64EC compat)",
-      "remoteUrl": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/dxvk-gplasync-arm64ec-latest/dxvk-gplasync-arm64ec.wcp",
-      "sha256Url": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/dxvk-gplasync-arm64ec-latest/SHA256SUMS-dxvk-gplasync-arm64ec.txt"
+      "remoteUrl": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/dxvk-gplasync-arm64ec-latest/dxvk-gplasync-arm64ec.wcp",
+      "sha256Url": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/dxvk-gplasync-arm64ec-latest/SHA256SUMS-dxvk-gplasync-arm64ec.txt",
+      "runtimeContract": {
+        "lane": "aedxvk-gplasync-arm64ec",
+        "role": "translation-layer",
+        "freewineLane": "freewine11-arm64ec",
+        "providerLanes": ["turnip-vulkan", "freedreno-opengl"],
+        "translationLayers": ["dxvk", "vkd3d-proton", "wined3d", "zink"],
+        "providerRoutePolicy": {
+          "primary": "turnip-vulkan",
+          "fallback": "freedreno-opengl",
+          "fallbackReasonHint": "vulkan-unavailable-or-unstable"
+        },
+        "legacyDxFallback": {
+          "engine": "wined3d",
+          "targetApis": ["dx8", "dx9"],
+          "activationHint": "force-gl-fallback-for-legacy"
+        },
+        "wrapperContract": {
+          "schemaVersion": 1,
+          "defaultProfile": "balanced",
+          "supportedProfiles": ["conservative", "balanced", "aggressive"],
+          "profileEnv": {
+            "conservative": {
+              "AERO_DXVK_FEATURE_LEVEL": "compat",
+              "AERO_DXVK_QUEUE_STRATEGY": "safe",
+              "AERO_DXVK_ROUTE_MODE": "turnip-first",
+              "AERO_DXVK_GL_FALLBACK": "1",
+              "AERO_DXVK_LEGACY_DX89_PATH": "wined3d",
+              "AERO_VKD3D_FEATURE_LEVEL": "compat",
+              "AERO_VKD3D_ROUTE_MODE": "turnip-first",
+              "AERO_VKD3D_GL_FALLBACK": "1"
+            },
+            "balanced": {
+              "AERO_DXVK_FEATURE_LEVEL": "default",
+              "AERO_DXVK_QUEUE_STRATEGY": "balanced",
+              "AERO_DXVK_ROUTE_MODE": "turnip-first",
+              "AERO_DXVK_GL_FALLBACK": "1",
+              "AERO_DXVK_LEGACY_DX89_PATH": "wined3d",
+              "AERO_VKD3D_FEATURE_LEVEL": "default",
+              "AERO_VKD3D_ROUTE_MODE": "turnip-first",
+              "AERO_VKD3D_GL_FALLBACK": "1"
+            },
+            "aggressive": {
+              "AERO_DXVK_FEATURE_LEVEL": "performance",
+              "AERO_DXVK_QUEUE_STRATEGY": "aggressive",
+              "AERO_DXVK_ROUTE_MODE": "turnip-first",
+              "AERO_DXVK_GL_FALLBACK": "1",
+              "AERO_DXVK_LEGACY_DX89_PATH": "wined3d",
+              "AERO_VKD3D_FEATURE_LEVEL": "performance",
+              "AERO_VKD3D_ROUTE_MODE": "turnip-first",
+              "AERO_VKD3D_GL_FALLBACK": "1"
+            }
+          },
+          "routeHints": {
+            "primaryProvider": "turnip-vulkan",
+            "fallbackProvider": "freedreno-opengl",
+            "legacyFallbackEngine": "wined3d",
+            "legacyTargetApis": ["dx8", "dx9"]
+          },
+          "socClassProfiles": {
+            "adreno-6xx-and-older": "conservative",
+            "adreno-7xx": "balanced",
+            "xclipse-rdna-mobile": "balanced",
+            "mali-g7xx-or-newer": "aggressive",
+            "unknown": "balanced"
+          }
+        }
+      },
+      "forensic": {
+        "issueBundleKeys": ["graphics-runtime-matrix.json", "runtime-mismatch-matrix.json", "runtime-conflict-contour.json"],
+        "liveDiagnosticsTopics": ["RUNTIME_GRAPHICS_SUITABILITY", "RUNTIME_DX_ROUTE_POLICY", "RUNTIME_UPSCALE_RUNTIME_MATRIX"]
+      }
     },
     "aevkd3dproton": {
       "kind": "wcp",
       "description": "AeVKD3D-Proton source-built WCP package (generic)",
-      "remoteUrl": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/vkd3d-proton-latest/vkd3d-proton.wcp",
-      "sha256Url": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/vkd3d-proton-latest/SHA256SUMS-vkd3d-proton.txt"
+      "remoteUrl": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/vkd3d-proton-latest/vkd3d-proton.wcp",
+      "sha256Url": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/vkd3d-proton-latest/SHA256SUMS-vkd3d-proton.txt",
+      "runtimeContract": {
+        "lane": "aevkd3d-proton",
+        "role": "translation-layer",
+        "freewineLane": "freewine11-arm64ec",
+        "providerLanes": ["turnip-vulkan", "freedreno-opengl"],
+        "translationLayers": ["dxvk", "vkd3d-proton", "wined3d", "zink"],
+        "providerRoutePolicy": {
+          "primary": "turnip-vulkan",
+          "fallback": "freedreno-opengl",
+          "fallbackReasonHint": "vulkan-unavailable-or-unstable"
+        },
+        "legacyDxFallback": {
+          "engine": "wined3d",
+          "targetApis": ["dx8", "dx9"],
+          "activationHint": "force-gl-fallback-for-legacy"
+        },
+        "wrapperContract": {
+          "schemaVersion": 1,
+          "defaultProfile": "balanced",
+          "supportedProfiles": ["conservative", "balanced", "aggressive"],
+          "profileEnv": {
+            "conservative": {
+              "AERO_VKD3D_FEATURE_LEVEL": "compat",
+              "AERO_VKD3D_QUEUE_STRATEGY": "safe",
+              "AERO_VKD3D_ROUTE_MODE": "turnip-first",
+              "AERO_VKD3D_GL_FALLBACK": "1",
+              "AERO_DXVK_FEATURE_LEVEL": "compat",
+              "AERO_DXVK_ROUTE_MODE": "turnip-first",
+              "AERO_DXVK_GL_FALLBACK": "1",
+              "AERO_DXVK_LEGACY_DX89_PATH": "wined3d"
+            },
+            "balanced": {
+              "AERO_VKD3D_FEATURE_LEVEL": "default",
+              "AERO_VKD3D_QUEUE_STRATEGY": "balanced",
+              "AERO_VKD3D_ROUTE_MODE": "turnip-first",
+              "AERO_VKD3D_GL_FALLBACK": "1",
+              "AERO_DXVK_FEATURE_LEVEL": "default",
+              "AERO_DXVK_ROUTE_MODE": "turnip-first",
+              "AERO_DXVK_GL_FALLBACK": "1",
+              "AERO_DXVK_LEGACY_DX89_PATH": "wined3d"
+            },
+            "aggressive": {
+              "AERO_VKD3D_FEATURE_LEVEL": "performance",
+              "AERO_VKD3D_QUEUE_STRATEGY": "aggressive",
+              "AERO_VKD3D_ROUTE_MODE": "turnip-first",
+              "AERO_VKD3D_GL_FALLBACK": "1",
+              "AERO_DXVK_FEATURE_LEVEL": "performance",
+              "AERO_DXVK_ROUTE_MODE": "turnip-first",
+              "AERO_DXVK_GL_FALLBACK": "1",
+              "AERO_DXVK_LEGACY_DX89_PATH": "wined3d"
+            }
+          },
+          "routeHints": {
+            "primaryProvider": "turnip-vulkan",
+            "fallbackProvider": "freedreno-opengl",
+            "legacyFallbackEngine": "wined3d",
+            "legacyTargetApis": ["dx8", "dx9"]
+          },
+          "socClassProfiles": {
+            "adreno-6xx-and-older": "conservative",
+            "adreno-7xx": "balanced",
+            "xclipse-rdna-mobile": "balanced",
+            "mali-g7xx-or-newer": "aggressive",
+            "unknown": "balanced"
+          }
+        }
+      },
+      "forensic": {
+        "issueBundleKeys": ["graphics-runtime-matrix.json", "runtime-mismatch-matrix.json", "runtime-conflict-contour.json"],
+        "liveDiagnosticsTopics": ["RUNTIME_GRAPHICS_SUITABILITY", "RUNTIME_DX_ROUTE_POLICY", "RUNTIME_UPSCALE_RUNTIME_MATRIX"]
+      }
     },
     "aevkd3dprotonarm64ec": {
       "kind": "wcp",
       "description": "AeVKD3D-Proton source-built WCP package (ARM64EC compat)",
-      "remoteUrl": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/vkd3d-proton-arm64ec-latest/vkd3d-proton-arm64ec.wcp",
-      "sha256Url": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/vkd3d-proton-arm64ec-latest/SHA256SUMS-vkd3d-proton-arm64ec.txt"
+      "remoteUrl": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/vkd3d-proton-arm64ec-latest/vkd3d-proton-arm64ec.wcp",
+      "sha256Url": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/vkd3d-proton-arm64ec-latest/SHA256SUMS-vkd3d-proton-arm64ec.txt",
+      "runtimeContract": {
+        "lane": "aevkd3d-proton-arm64ec",
+        "role": "translation-layer",
+        "freewineLane": "freewine11-arm64ec",
+        "providerLanes": ["turnip-vulkan", "freedreno-opengl"],
+        "translationLayers": ["dxvk", "vkd3d-proton", "wined3d", "zink"],
+        "providerRoutePolicy": {
+          "primary": "turnip-vulkan",
+          "fallback": "freedreno-opengl",
+          "fallbackReasonHint": "vulkan-unavailable-or-unstable"
+        },
+        "legacyDxFallback": {
+          "engine": "wined3d",
+          "targetApis": ["dx8", "dx9"],
+          "activationHint": "force-gl-fallback-for-legacy"
+        },
+        "wrapperContract": {
+          "schemaVersion": 1,
+          "defaultProfile": "balanced",
+          "supportedProfiles": ["conservative", "balanced", "aggressive"],
+          "profileEnv": {
+            "conservative": {
+              "AERO_VKD3D_FEATURE_LEVEL": "compat",
+              "AERO_VKD3D_QUEUE_STRATEGY": "safe",
+              "AERO_VKD3D_ROUTE_MODE": "turnip-first",
+              "AERO_VKD3D_GL_FALLBACK": "1",
+              "AERO_DXVK_FEATURE_LEVEL": "compat",
+              "AERO_DXVK_ROUTE_MODE": "turnip-first",
+              "AERO_DXVK_GL_FALLBACK": "1",
+              "AERO_DXVK_LEGACY_DX89_PATH": "wined3d"
+            },
+            "balanced": {
+              "AERO_VKD3D_FEATURE_LEVEL": "default",
+              "AERO_VKD3D_QUEUE_STRATEGY": "balanced",
+              "AERO_VKD3D_ROUTE_MODE": "turnip-first",
+              "AERO_VKD3D_GL_FALLBACK": "1",
+              "AERO_DXVK_FEATURE_LEVEL": "default",
+              "AERO_DXVK_ROUTE_MODE": "turnip-first",
+              "AERO_DXVK_GL_FALLBACK": "1",
+              "AERO_DXVK_LEGACY_DX89_PATH": "wined3d"
+            },
+            "aggressive": {
+              "AERO_VKD3D_FEATURE_LEVEL": "performance",
+              "AERO_VKD3D_QUEUE_STRATEGY": "aggressive",
+              "AERO_VKD3D_ROUTE_MODE": "turnip-first",
+              "AERO_VKD3D_GL_FALLBACK": "1",
+              "AERO_DXVK_FEATURE_LEVEL": "performance",
+              "AERO_DXVK_ROUTE_MODE": "turnip-first",
+              "AERO_DXVK_GL_FALLBACK": "1",
+              "AERO_DXVK_LEGACY_DX89_PATH": "wined3d"
+            }
+          },
+          "routeHints": {
+            "primaryProvider": "turnip-vulkan",
+            "fallbackProvider": "freedreno-opengl",
+            "legacyFallbackEngine": "wined3d",
+            "legacyTargetApis": ["dx8", "dx9"]
+          },
+          "socClassProfiles": {
+            "adreno-6xx-and-older": "conservative",
+            "adreno-7xx": "balanced",
+            "xclipse-rdna-mobile": "balanced",
+            "mali-g7xx-or-newer": "aggressive",
+            "unknown": "balanced"
+          }
+        }
+      },
+      "forensic": {
+        "issueBundleKeys": ["graphics-runtime-matrix.json", "runtime-mismatch-matrix.json", "runtime-conflict-contour.json"],
+        "liveDiagnosticsTopics": ["RUNTIME_GRAPHICS_SUITABILITY", "RUNTIME_DX_ROUTE_POLICY", "RUNTIME_UPSCALE_RUNTIME_MATRIX"]
+      }
     },
     "aeturniparm64": {
       "kind": "zip",
-      "description": "AeTurnip ARM64 curated ZIP driver lane",
+      "description": "AeTurnip ARM64 source-built ZIP driver lane",
       "remoteUrl": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/aeturnip-arm64-latest/aeturnip-arm64.zip",
-      "sha256Url": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/aeturnip-arm64-latest/SHA256SUMS-aeturnip-arm64.txt"
-    },
-    "dgvoodoolatest": {
-      "kind": "zip",
-      "description": "Latest upstream dgVoodoo ZIP mirrored as a Contents lane",
-      "remoteUrl": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/dgvoodoo-latest/dgvoodoo-latest.zip",
-      "sha256Url": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/dgvoodoo-latest/SHA256SUMS-dgvoodoo-latest.txt"
+      "sha256Url": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/aeturnip-arm64-latest/SHA256SUMS-aeturnip-arm64.txt",
+      "runtimeContract": {
+        "lane": "aeturnip-arm64",
+        "role": "graphics-provider",
+        "freewineLane": "freewine11-arm64ec",
+        "providerLane": "turnip-vulkan",
+        "translationLayers": ["dxvk", "vkd3d-proton", "wined3d", "zink"]
+      },
+      "forensic": {
+        "issueBundleKeys": ["graphics-runtime-matrix.json", "runtime-mismatch-matrix.json", "runtime-conflict-contour.json"],
+        "liveDiagnosticsTopics": ["RUNTIME_GRAPHICS_SUITABILITY", "RUNTIME_DX_ROUTE_POLICY", "RUNTIME_UPSCALE_RUNTIME_MATRIX"]
+      }
     },
     "aeopengldriverarm64": {
       "kind": "zip",
-      "description": "AeOpenGLDriver ARM64 curated ZIP overlay lane",
+      "description": "AeOpenGLDriver ARM64 source-built ZIP overlay lane",
       "remoteUrl": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/aeopengl-driver-arm64-latest/aeopengl-driver-arm64.zip",
-      "sha256Url": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/aeopengl-driver-arm64-latest/SHA256SUMS-aeopengl-driver-arm64.txt"
+      "sha256Url": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/aeopengl-driver-arm64-latest/SHA256SUMS-aeopengl-driver-arm64.txt",
+      "runtimeContract": {
+        "lane": "aeopengl-driver-arm64",
+        "role": "graphics-provider",
+        "freewineLane": "freewine11-arm64ec",
+        "providerLane": "freedreno-opengl",
+        "translationLayers": ["wined3d", "zink", "dxvk", "vkd3d-proton"]
+      },
+      "forensic": {
+        "issueBundleKeys": ["graphics-runtime-matrix.json", "runtime-mismatch-matrix.json", "runtime-conflict-contour.json"],
+        "liveDiagnosticsTopics": ["RUNTIME_GRAPHICS_SUITABILITY", "RUNTIME_DX_ROUTE_POLICY", "RUNTIME_UPSCALE_RUNTIME_MATRIX"]
+      }
     }
   }
 }

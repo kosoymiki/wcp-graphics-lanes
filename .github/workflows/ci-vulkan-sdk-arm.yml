@@ -29,8 +29,8 @@ env:
   WCP_PROFILE_TYPE: VulkanSDK
   WCP_DISPLAY_CATEGORY: Vulkan SDK
   WCP_RELEASE_OWNER: kosoymiki
-  WCP_RELEASE_REPO: wcp-graphics-lanes
-  WCP_SOURCE_REPO: kosoymiki/wcp-graphics-lanes
+  WCP_RELEASE_REPO: wcp-runtime-lanes
+  WCP_SOURCE_REPO: kosoymiki/wcp-runtime-lanes
   VULKAN_SDK_LATEST_JSON_URL: https://vulkan.lunarg.com/sdk/latest/linux.json
   VULKAN_SDK_LINUX_SDK_URL: https://sdk.lunarg.com/sdk/download/latest/linux/vulkan-sdk.tar.xz
 

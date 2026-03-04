@@ -11,7 +11,7 @@ WORK_DIR="${2:-/tmp/aedxvk-wcp-work}"
 : "${AEDXVK_CHANNEL:=stable}"
 : "${AEDXVK_DELIVERY:=remote}"
 : "${AEDXVK_FLAVOR:=generic}"
-: "${AEDXVK_SOURCE_REPO:=${GITHUB_REPOSITORY:-kosoymiki/winlator-wine-proton-arm64ec-wcp}}"
+: "${AEDXVK_SOURCE_REPO:=${GITHUB_REPOSITORY:-kosoymiki/wcp-runtime-lanes}}"
 : "${AEDXVK_RELEASE_TAG:=dxvk-gplasync-latest}"
 : "${AEDXVK_ARTIFACT_NAME:=dxvk-gplasync.wcp}"
 : "${AEDXVK_SHA256_ARTIFACT_NAME:=SHA256SUMS-dxvk-gplasync.txt}"
@@ -104,6 +104,10 @@ fi
 
 resolved_commit="$(git -C "${src_dir}" rev-parse HEAD)"
 resolved_short="${resolved_commit:0:12}"
+lane_name="aedxvk-gplasync"
+if [[ "${AEDXVK_FLAVOR}" == "arm64ec" ]]; then
+  lane_name="${lane_name}-arm64ec"
+fi
 
 (cd "${src_dir}" && ./package-release.sh "${AEDXVK_VERSION_NAME}" "${build_dir}" --no-package)
 
@@ -154,6 +158,113 @@ cat > "${wcp_root}/dxvk-source.json" <<EOF_SOURCE
 }
 EOF_SOURCE
 
+cat > "${wcp_root}/ae-runtime-wrapper.env" <<EOF_WRAPPER
+# Aeolator runtime wrapper hints for DXVK/VKD3D route selection.
+# This file is declarative and does not force upstream runtime changes by itself.
+AERO_GRAPHICS_WRAPPER_SCHEMA=1
+AERO_GRAPHICS_WRAPPER_PROFILE=balanced
+AERO_DXVK_ROUTE_MODE=turnip-first
+AERO_DXVK_GL_FALLBACK=1
+AERO_DXVK_LEGACY_DX89_PATH=wined3d
+AERO_VKD3D_ROUTE_MODE=turnip-first
+AERO_VKD3D_GL_FALLBACK=1
+AERO_GL_FALLBACK_ENGINE=wined3d
+EOF_WRAPPER
+
+cat > "${wcp_root}/ae-runtime-contract.json" <<EOF_RUNTIME
+{
+  "schemaVersion": 2,
+  "lane": "$(json_escape "${lane_name}")",
+  "role": "translation-layer",
+  "freewineLane": "freewine11-arm64ec",
+  "providerLanes": ["turnip-vulkan", "freedreno-opengl"],
+  "translationLayers": ["dxvk", "vkd3d-proton", "wined3d", "zink"],
+  "providerRoutePolicy": {
+    "primary": "turnip-vulkan",
+    "fallback": "freedreno-opengl",
+    "fallbackReasonHint": "vulkan-unavailable-or-unstable"
+  },
+  "legacyDxFallback": {
+    "engine": "wined3d",
+    "targetApis": ["dx8", "dx9"],
+    "activationHint": "force-gl-fallback-for-legacy"
+  },
+  "wrapperContract": {
+    "schemaVersion": 1,
+    "defaultProfile": "balanced",
+    "supportedProfiles": ["conservative", "balanced", "aggressive"],
+    "profileEnv": {
+      "conservative": {
+        "AERO_DXVK_FEATURE_LEVEL": "compat",
+        "AERO_DXVK_QUEUE_STRATEGY": "safe",
+        "AERO_DXVK_ROUTE_MODE": "turnip-first",
+        "AERO_DXVK_GL_FALLBACK": "1",
+        "AERO_DXVK_LEGACY_DX89_PATH": "wined3d",
+        "AERO_VKD3D_FEATURE_LEVEL": "compat",
+        "AERO_VKD3D_ROUTE_MODE": "turnip-first",
+        "AERO_VKD3D_GL_FALLBACK": "1"
+      },
+      "balanced": {
+        "AERO_DXVK_FEATURE_LEVEL": "default",
+        "AERO_DXVK_QUEUE_STRATEGY": "balanced",
+        "AERO_DXVK_ROUTE_MODE": "turnip-first",
+        "AERO_DXVK_GL_FALLBACK": "1",
+        "AERO_DXVK_LEGACY_DX89_PATH": "wined3d",
+        "AERO_VKD3D_FEATURE_LEVEL": "default",
+        "AERO_VKD3D_ROUTE_MODE": "turnip-first",
+        "AERO_VKD3D_GL_FALLBACK": "1"
+      },
+      "aggressive": {
+        "AERO_DXVK_FEATURE_LEVEL": "performance",
+        "AERO_DXVK_QUEUE_STRATEGY": "aggressive",
+        "AERO_DXVK_ROUTE_MODE": "turnip-first",
+        "AERO_DXVK_GL_FALLBACK": "1",
+        "AERO_DXVK_LEGACY_DX89_PATH": "wined3d",
+        "AERO_VKD3D_FEATURE_LEVEL": "performance",
+        "AERO_VKD3D_ROUTE_MODE": "turnip-first",
+        "AERO_VKD3D_GL_FALLBACK": "1"
+      }
+    },
+    "routeHints": {
+      "primaryProvider": "turnip-vulkan",
+      "fallbackProvider": "freedreno-opengl",
+      "legacyFallbackEngine": "wined3d",
+      "legacyTargetApis": ["dx8", "dx9"]
+    },
+    "socClassProfiles": {
+      "adreno-6xx-and-older": "conservative",
+      "adreno-7xx": "balanced",
+      "xclipse-rdna-mobile": "balanced",
+      "mali-g7xx-or-newer": "aggressive",
+      "unknown": "balanced"
+    }
+  },
+  "forensic": {
+    "requiredEnvPrefixes": ["AERO_DXVK_", "AERO_TURNIP_", "AERO_VKD3D_", "AERO_WINE_"],
+    "requiredEvents": [
+      "RUNTIME_UPSCALE_RUNTIME_MATRIX",
+      "RUNTIME_DX_ROUTE_POLICY",
+      "RUNTIME_GRAPHICS_SUITABILITY"
+    ],
+    "liveDiagnosticsTopics": [
+      "RUNTIME_UPSCALE_RUNTIME_MATRIX",
+      "RUNTIME_DX_ROUTE_POLICY",
+      "RUNTIME_GRAPHICS_SUITABILITY"
+    ],
+    "issueBundleKeys": [
+      "runtime-conflict-contour.json",
+      "runtime-mismatch-matrix.json",
+      "graphics-runtime-matrix.json"
+    ]
+  },
+  "build": {
+    "resolvedSourceCommit": "$(json_escape "${resolved_commit}")",
+    "resolvedUpstreamTag": "$(json_escape "${resolved_tag}")",
+    "runtimeTarget": "$(json_escape "${AEDXVK_FLAVOR}")"
+  }
+}
+EOF_RUNTIME
+
 cat > "${wcp_root}/profile.json" <<EOF_PROFILE
 {
   "type": "DXVK",
@@ -203,6 +314,7 @@ RU:
 - Exact commit: ${resolved_commit}
 - Ближайший upstream stable tag: ${resolved_tag}
 - Runtime target: ${AEDXVK_FLAVOR}
+- Wrapper contract: turnip-first + freedreno/wined3d fallback
 
 EN:
 - Format: WCP, installable via Winlator Contents
@@ -210,6 +322,7 @@ EN:
 - Exact commit: ${resolved_commit}
 - Nearest upstream stable tag: ${resolved_tag}
 - Runtime target: ${AEDXVK_FLAVOR}
+- Wrapper contract: turnip-first + freedreno/wined3d fallback
 
 Commit: ${GITHUB_SHA:-local}
 EOF_NOTES

@@ -15,8 +15,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Sequence
 
-ALLOWED_INTERNAL_TYPES = {"wine", "proton", "protonge", "protonwine", "vulkansdk", "turnip", "freedreno", "dgvoodoo", "dxvk", "vkd3d"}
-ALLOWED_TYPES = {"Wine", "Proton", "VulkanSDK", "TurnipDriver", "OpenGLDriver", "DgVoodoo", "DXVK", "VKD3D"}
+ALLOWED_INTERNAL_TYPES = {"wine", "proton", "protonge", "protonwine", "vulkansdk", "turnip", "freedreno", "dxvk", "vkd3d"}
+ALLOWED_TYPES = {"Wine", "Proton", "VulkanSDK", "TurnipDriver", "OpenGLDriver", "DXVK", "VKD3D"}
 EXPECTED_TYPE_BY_INTERNAL = {
     "wine": "Wine",
     "proton": "Proton",
@@ -25,7 +25,6 @@ EXPECTED_TYPE_BY_INTERNAL = {
     "vulkansdk": "VulkanSDK",
     "turnip": "TurnipDriver",
     "freedreno": "OpenGLDriver",
-    "dgvoodoo": "DgVoodoo",
     "dxvk": "DXVK",
     "vkd3d": "VKD3D",
 }
@@ -35,11 +34,10 @@ EXPECTED_DISPLAY_BY_TYPE = {
     "VulkanSDK": "Vulkan SDK",
     "TurnipDriver": "Turnip",
     "OpenGLDriver": "OpenGL Driver",
-    "DgVoodoo": "dgVoodoo",
     "DXVK": "DXVK",
     "VKD3D": "VKD3D",
 }
-TARGET_REPO = "kosoymiki/winlator-wine-proton-arm64ec-wcp"
+TARGET_REPO = "kosoymiki/aesolator"
 RUNTIME_RELEASE_REPO = "kosoymiki/wcp-runtime-lanes"
 GRAPHICS_RELEASE_REPO = "kosoymiki/wcp-graphics-lanes"
 TARGET_RELEASE_REPO_BY_INTERNAL = {
@@ -47,13 +45,29 @@ TARGET_RELEASE_REPO_BY_INTERNAL = {
     "proton": RUNTIME_RELEASE_REPO,
     "protonge": RUNTIME_RELEASE_REPO,
     "protonwine": RUNTIME_RELEASE_REPO,
-    "vulkansdk": GRAPHICS_RELEASE_REPO,
+    "vulkansdk": RUNTIME_RELEASE_REPO,
     "turnip": GRAPHICS_RELEASE_REPO,
     "freedreno": GRAPHICS_RELEASE_REPO,
-    "dgvoodoo": GRAPHICS_RELEASE_REPO,
-    "dxvk": GRAPHICS_RELEASE_REPO,
-    "vkd3d": GRAPHICS_RELEASE_REPO,
+    "dxvk": RUNTIME_RELEASE_REPO,
+    "vkd3d": RUNTIME_RELEASE_REPO,
 }
+GRAPHICS_RUNTIME_INTERNAL_TYPES = {"turnip", "freedreno", "dxvk", "vkd3d"}
+GRAPHICS_PROVIDER_INTERNAL_TYPES = {"turnip", "freedreno"}
+GRAPHICS_TRANSLATION_INTERNAL_TYPES = {"dxvk", "vkd3d"}
+EXPECTED_RUNTIME_ROLE_BY_INTERNAL = {
+    "turnip": "graphics-provider",
+    "freedreno": "graphics-provider",
+    "dxvk": "translation-layer",
+    "vkd3d": "translation-layer",
+}
+EXPECTED_RUNTIME_LANE_PREFIX_BY_INTERNAL = {
+    "turnip": "aeturnip",
+    "freedreno": "aeopengl-driver",
+    "dxvk": "aedxvk-gplasync",
+    "vkd3d": "aevkd3d-proton",
+}
+EXPECTED_RUNTIME_FREEWINE_LANE = "freewine11-arm64ec"
+REQUIRED_WRAPPER_PROFILES = ("conservative", "balanced", "aggressive")
 TARGET_OVERLAY_URL = (
     "https://raw.githubusercontent.com/"
     f"{TARGET_REPO}/main/contents/contents.json"
@@ -61,35 +75,28 @@ TARGET_OVERLAY_URL = (
 TARGET_HUB_PROFILES_URL = "https://raw.githubusercontent.com/Arihany/WinlatorWCPHub/main/pack.json"
 
 WORKFLOW_EXPECTATIONS = {
-    ".github/workflows/ci-arm64ec-wine.yml": {
-        "WCP_VERSION_CODE": "\"1\"",
-        "WCP_CHANNEL": "nightly",
-        "WCP_DELIVERY": "remote",
-        "WCP_PROFILE_TYPE": "Wine",
-        "WCP_DISPLAY_CATEGORY": "Wine",
-        "WCP_RELEASE_TAG": "freewine11-arm64ec-latest",
-        "WCP_SOURCE_REPO": "kosoymiki/wcp-runtime-lanes",
-    },
     ".github/workflows/ci-vulkan-sdk-arm.yml": {
         "WCP_VERSION_CODE": "\"1\"",
         "WCP_CHANNEL": "stable",
         "WCP_DELIVERY": "remote",
         "WCP_PROFILE_TYPE": "VulkanSDK",
         "WCP_DISPLAY_CATEGORY": "Vulkan SDK",
-        "WCP_SOURCE_REPO": "kosoymiki/wcp-graphics-lanes",
+        "WCP_SOURCE_REPO": "kosoymiki/wcp-runtime-lanes",
+        "WCP_RELEASE_REPO": "wcp-runtime-lanes",
         "VULKAN_SDK_LATEST_JSON_URL": "https://vulkan.lunarg.com/sdk/latest/linux.json",
         "VULKAN_SDK_LINUX_SDK_URL": "https://sdk.lunarg.com/sdk/download/latest/linux/vulkan-sdk.tar.xz",
     },
     ".github/workflows/ci-graphics-drivers.yml": {
         "AETURNIP_SOURCE_REPO": "kosoymiki/wcp-graphics-lanes",
         "AEOPENGL_SOURCE_REPO": "kosoymiki/wcp-graphics-lanes",
-        "AEDXVK_SOURCE_REPO": "kosoymiki/wcp-graphics-lanes",
-        "AEVKD3D_SOURCE_REPO": "kosoymiki/wcp-graphics-lanes",
+        "AEDXVK_SOURCE_REPO": "kosoymiki/wcp-runtime-lanes",
+        "AEVKD3D_SOURCE_REPO": "kosoymiki/wcp-runtime-lanes",
+        "DGVOODOO_SOURCE_REPO": "kosoymiki/wcp-runtime-lanes",
+        "WCP_ARCHIVE_RELEASE_REPO": "wcp-runtime-lanes",
+        "WCP_ARCHIVE_SOURCE_REPO": "kosoymiki/wcp-runtime-lanes",
         "MESA_SOURCE_GIT_URL": "https://gitlab.freedesktop.org/mesa/mesa.git",
         "AETURNIP_VERSION_NAME": "rolling-arm64",
         "AEOPENGL_VERSION_NAME": "rolling-arm64",
-        "DGVOODOO_LATEST_RELEASE_API": "https://api.github.com/repos/dege-diosg/dgVoodoo2/releases/latest",
-        "DGVOODOO_VERSION_NAME": "2.86.5",
         "DXVK_GPLASYNC_GIT_URL": "https://gitlab.com/Ph42oN/dxvk-gplasync.git",
         "DXVK_UPSTREAM_GIT_URL": "https://github.com/doitsujin/dxvk.git",
         "AEDXVK_GENERIC_VERSION_NAME": "2.7.1-1-gplasync",
@@ -112,23 +119,25 @@ WORKFLOW_REQUIRED_TOKENS = {
     ".github/workflows/ci-graphics-drivers.yml": [
         "AETURNIP_RELEASE_TAG: aeturnip-arm64-latest",
         "AEOPENGL_RELEASE_TAG: aeopengl-driver-arm64-latest",
-        "DGVOODOO_RELEASE_TAG: dgvoodoo-latest",
         "release_tag: dxvk-gplasync-latest",
         "release_tag: dxvk-gplasync-arm64ec-latest",
         "release_tag: vkd3d-proton-latest",
         "release_tag: vkd3d-proton-arm64ec-latest",
         "Build AeTurnip ARM64 ZIP driver",
         "Build AeOpenGLDriver ARM64 ZIP overlay",
-        "Build dgVoodoo latest ZIP mirror",
         "Build AeDXVK GPLAsync source WCP",
         "Build AeVKD3D-Proton source WCP",
+        "Build dgVoodoo WCP package",
+        "Validate AeTurnip runtime contract",
+        "Validate AeOpenGL runtime contract",
+        "Validate AeDXVK runtime contract",
+        "Validate AeVKD3D runtime contract",
+        "Validate dgVoodoo runtime contract",
+        "DGVOODOO_RELEASE_TAG: dgvoodoo-latest",
     ],
 }
 
-DEPRECATED_WORKFLOWS = (
-    ".github/workflows/ci-proton-ge10-wcp.yml",
-    ".github/workflows/ci-protonwine10-wcp.yml",
-)
+DEPRECATED_WORKFLOWS: Sequence[str] = ()
 
 ARTIFACT_EXPECTED_ENTRIES = {
     "freewine11": {"internalType": "wine", "artifactName": "freewine11-arm64ec.wcp"},
@@ -140,7 +149,6 @@ ARTIFACT_EXPECTED_ENTRIES = {
     "aevkd3dproton": {"internalType": "vkd3d", "artifactName": "vkd3d-proton.wcp"},
     "aevkd3dprotonarm64ec": {"internalType": "vkd3d", "artifactName": "vkd3d-proton-arm64ec.wcp"},
     "aeturniparm64": {"internalType": "turnip", "artifactName": "aeturnip-arm64.zip"},
-    "dgvoodoolatest": {"internalType": "dgvoodoo", "artifactName": "dgvoodoo-latest.zip"},
     "aeopengldriverarm64": {"internalType": "freedreno", "artifactName": "aeopengl-driver-arm64.zip"},
 }
 
@@ -161,6 +169,86 @@ def warn(msg: str, warnings: List[str]) -> None:
 
 def load_json(path: Path) -> object:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def is_non_empty_string_list(value: object) -> bool:
+    return isinstance(value, list) and bool(value) and all(isinstance(item, str) and item.strip() for item in value)
+
+
+def validate_wrapper_contract(
+    wrapper_contract: object,
+    where: str,
+    failures: List[str],
+) -> None:
+    if not isinstance(wrapper_contract, dict):
+        fail(f"{where} wrapperContract must be object", failures)
+        return
+
+    schema_version = wrapper_contract.get("schemaVersion")
+    if not isinstance(schema_version, int) or schema_version < 1:
+        fail(f"{where} wrapperContract.schemaVersion must be int >= 1", failures)
+
+    supported_profiles = wrapper_contract.get("supportedProfiles")
+    if not is_non_empty_string_list(supported_profiles):
+        fail(f"{where} wrapperContract.supportedProfiles must be non-empty string[]", failures)
+        return
+    supported_set = set(supported_profiles)
+    for required in REQUIRED_WRAPPER_PROFILES:
+        if required not in supported_set:
+            fail(f"{where} wrapperContract.supportedProfiles must include {required}", failures)
+
+    default_profile = str(wrapper_contract.get("defaultProfile", "")).strip()
+    if not default_profile or default_profile not in supported_set:
+        fail(f"{where} wrapperContract.defaultProfile must be one of supportedProfiles", failures)
+
+    profile_env = wrapper_contract.get("profileEnv")
+    if not isinstance(profile_env, dict):
+        fail(f"{where} wrapperContract.profileEnv must be object", failures)
+    else:
+        for required in REQUIRED_WRAPPER_PROFILES:
+            env_map = profile_env.get(required)
+            if not isinstance(env_map, dict) or not env_map:
+                fail(f"{where} wrapperContract.profileEnv.{required} must be non-empty object", failures)
+                continue
+            for env_key, env_value in env_map.items():
+                if not isinstance(env_key, str) or not env_key.startswith("AERO_"):
+                    fail(
+                        f"{where} wrapperContract.profileEnv.{required} has invalid key {env_key!r}",
+                        failures,
+                    )
+                if not isinstance(env_value, str) or not env_value.strip():
+                    fail(
+                        f"{where} wrapperContract.profileEnv.{required}.{env_key} "
+                        "must be non-empty string",
+                        failures,
+                    )
+
+    route_hints = wrapper_contract.get("routeHints")
+    if not isinstance(route_hints, dict):
+        fail(f"{where} wrapperContract.routeHints must be object", failures)
+    else:
+        for route_key in ("primaryProvider", "fallbackProvider", "legacyFallbackEngine"):
+            value = str(route_hints.get(route_key, "")).strip()
+            if not value:
+                fail(f"{where} wrapperContract.routeHints.{route_key} is required", failures)
+        if not is_non_empty_string_list(route_hints.get("legacyTargetApis")):
+            fail(
+                f"{where} wrapperContract.routeHints.legacyTargetApis must be non-empty string[]",
+                failures,
+            )
+
+    soc_class_profiles = wrapper_contract.get("socClassProfiles")
+    if not isinstance(soc_class_profiles, dict) or not soc_class_profiles:
+        fail(f"{where} wrapperContract.socClassProfiles must be non-empty object", failures)
+    else:
+        for soc_class, profile_name in soc_class_profiles.items():
+            if not isinstance(soc_class, str) or not soc_class.strip():
+                fail(f"{where} wrapperContract.socClassProfiles keys must be non-empty strings", failures)
+            if not isinstance(profile_name, str) or profile_name not in supported_set:
+                fail(
+                    f"{where} wrapperContract.socClassProfiles values must reference supportedProfiles",
+                    failures,
+                )
 
 
 def check_contents_schema(
@@ -268,7 +356,7 @@ def check_contents_schema(
         if not release_tag.endswith("-latest"):
             fail(f"entry[{idx}] releaseTag must end with -latest: {release_tag}", failures)
 
-        if internal_type in {"turnip", "freedreno", "dgvoodoo"}:
+        if internal_type in {"turnip", "freedreno"}:
             if not artifact_name.endswith(".zip"):
                 fail(f"entry[{idx}] artifactName must end with .zip; got {artifact_name}", failures)
         else:
@@ -289,11 +377,6 @@ def check_contents_schema(
                 fail(f"entry[{idx}] freedreno releaseTag must contain aeopengl-driver; got {release_tag}", failures)
             if "aeopengl-driver" not in artifact_name:
                 fail(f"entry[{idx}] freedreno artifactName must contain aeopengl-driver; got {artifact_name}", failures)
-        if internal_type == "dgvoodoo":
-            if "dgvoodoo" not in release_tag:
-                fail(f"entry[{idx}] dgvoodoo releaseTag must contain dgvoodoo; got {release_tag}", failures)
-            if "dgvoodoo" not in artifact_name:
-                fail(f"entry[{idx}] dgvoodoo artifactName must contain dgvoodoo; got {artifact_name}", failures)
         if internal_type == "dxvk":
             if "dxvk-gplasync" not in release_tag:
                 fail(f"entry[{idx}] dxvk releaseTag must contain dxvk-gplasync; got {release_tag}", failures)
@@ -331,6 +414,104 @@ def check_contents_schema(
                 failures,
             )
 
+        if internal_type in GRAPHICS_RUNTIME_INTERNAL_TYPES:
+            runtime_contract = row.get("runtimeContract")
+            forensic_contract = row.get("forensicContract")
+            if not isinstance(runtime_contract, dict):
+                fail(f"entry[{idx}] runtimeContract object is required for {internal_type}", failures)
+            if not isinstance(forensic_contract, dict):
+                fail(f"entry[{idx}] forensicContract object is required for {internal_type}", failures)
+
+            if isinstance(runtime_contract, dict):
+                runtime_schema = runtime_contract.get("schemaVersion")
+                if not isinstance(runtime_schema, int) or runtime_schema < 1:
+                    fail(f"entry[{idx}] runtimeContract.schemaVersion must be int >= 1", failures)
+                lane = str(runtime_contract.get("lane", "")).strip()
+                if not lane:
+                    fail(f"entry[{idx}] runtimeContract.lane is required", failures)
+                expected_lane_prefix = EXPECTED_RUNTIME_LANE_PREFIX_BY_INTERNAL[internal_type]
+                if lane and not lane.startswith(expected_lane_prefix):
+                    fail(
+                        f"entry[{idx}] runtimeContract.lane must start with {expected_lane_prefix}; got {lane}",
+                        failures,
+                    )
+                expected_role = EXPECTED_RUNTIME_ROLE_BY_INTERNAL[internal_type]
+                role = str(runtime_contract.get("role", "")).strip().lower()
+                if role != expected_role:
+                    fail(
+                        f"entry[{idx}] runtimeContract.role must be {expected_role}; got {role}",
+                        failures,
+                    )
+                freewine_lane = str(runtime_contract.get("freewineLane", "")).strip()
+                if freewine_lane != EXPECTED_RUNTIME_FREEWINE_LANE:
+                    fail(
+                        f"entry[{idx}] runtimeContract.freewineLane must be {EXPECTED_RUNTIME_FREEWINE_LANE}; "
+                        f"got {freewine_lane}",
+                        failures,
+                    )
+                if internal_type in GRAPHICS_PROVIDER_INTERNAL_TYPES:
+                    provider_lane = str(runtime_contract.get("providerLane", "")).strip()
+                    if not provider_lane:
+                        fail(
+                            f"entry[{idx}] runtimeContract.providerLane is required for {internal_type}",
+                            failures,
+                        )
+                if internal_type in GRAPHICS_TRANSLATION_INTERNAL_TYPES:
+                    provider_lanes = runtime_contract.get("providerLanes")
+                    if not is_non_empty_string_list(provider_lanes):
+                        fail(
+                            f"entry[{idx}] runtimeContract.providerLanes must be non-empty string[] for {internal_type}",
+                            failures,
+                        )
+                    legacy_fallback = runtime_contract.get("legacyDxFallback")
+                    if not isinstance(legacy_fallback, dict):
+                        fail(
+                            f"entry[{idx}] runtimeContract.legacyDxFallback must be object for {internal_type}",
+                            failures,
+                        )
+                    else:
+                        engine = str(legacy_fallback.get("engine", "")).strip().lower()
+                        if engine != "wined3d":
+                            fail(
+                                f"entry[{idx}] runtimeContract.legacyDxFallback.engine must be wined3d; "
+                                f"got {engine}",
+                                failures,
+                            )
+                        if not is_non_empty_string_list(legacy_fallback.get("targetApis")):
+                            fail(
+                                f"entry[{idx}] runtimeContract.legacyDxFallback.targetApis "
+                                "must be non-empty string[]",
+                                failures,
+                            )
+                    validate_wrapper_contract(
+                        runtime_contract.get("wrapperContract"),
+                        f"entry[{idx}] runtimeContract",
+                        failures,
+                    )
+                translation_layers = runtime_contract.get("translationLayers")
+                if not is_non_empty_string_list(translation_layers):
+                    fail(
+                        f"entry[{idx}] runtimeContract.translationLayers must be non-empty string[]",
+                        failures,
+                    )
+
+            if isinstance(forensic_contract, dict):
+                forensic_schema = forensic_contract.get("schemaVersion")
+                if not isinstance(forensic_schema, int) or forensic_schema < 1:
+                    fail(f"entry[{idx}] forensicContract.schemaVersion must be int >= 1", failures)
+                issue_bundle_keys = forensic_contract.get("issueBundleKeys")
+                if not is_non_empty_string_list(issue_bundle_keys):
+                    fail(
+                        f"entry[{idx}] forensicContract.issueBundleKeys must be non-empty string[]",
+                        failures,
+                    )
+                live_topics = forensic_contract.get("liveDiagnosticsTopics")
+                if not is_non_empty_string_list(live_topics):
+                    fail(
+                        f"entry[{idx}] forensicContract.liveDiagnosticsTopics must be non-empty string[]",
+                        failures,
+                    )
+
         family_entries_by_internal.setdefault(internal_type, []).append(row)
 
     for artifact_key, expected in ARTIFACT_EXPECTED_ENTRIES.items():
@@ -366,6 +547,123 @@ def check_contents_schema(
                 f"sha256Url mismatch for {artifact_key}: contents={actual_sha} artifact-map={expected_sha}",
                 failures,
             )
+
+        if internal_type in GRAPHICS_RUNTIME_INTERNAL_TYPES:
+            runtime_meta = artifact.get("runtimeContract")
+            forensic_meta = artifact.get("forensic")
+            if not isinstance(runtime_meta, dict):
+                fail(f"artifact-source-map {artifact_key} missing runtimeContract object", failures)
+            if not isinstance(forensic_meta, dict):
+                fail(f"artifact-source-map {artifact_key} missing forensic object", failures)
+
+            entry_runtime = entry.get("runtimeContract")
+            if isinstance(runtime_meta, dict):
+                lane = str(runtime_meta.get("lane", "")).strip()
+                expected_lane_prefix = EXPECTED_RUNTIME_LANE_PREFIX_BY_INTERNAL[internal_type]
+                if not lane.startswith(expected_lane_prefix):
+                    fail(
+                        f"artifact-source-map {artifact_key} runtimeContract.lane must start with "
+                        f"{expected_lane_prefix}; got {lane}",
+                        failures,
+                    )
+                role = str(runtime_meta.get("role", "")).strip().lower()
+                expected_role = EXPECTED_RUNTIME_ROLE_BY_INTERNAL[internal_type]
+                if role != expected_role:
+                    fail(
+                        f"artifact-source-map {artifact_key} runtimeContract.role must be "
+                        f"{expected_role}; got {role}",
+                        failures,
+                    )
+                freewine_lane = str(runtime_meta.get("freewineLane", "")).strip()
+                if freewine_lane != EXPECTED_RUNTIME_FREEWINE_LANE:
+                    fail(
+                        f"artifact-source-map {artifact_key} runtimeContract.freewineLane must be "
+                        f"{EXPECTED_RUNTIME_FREEWINE_LANE}; got {freewine_lane}",
+                        failures,
+                    )
+
+                if isinstance(entry_runtime, dict):
+                    entry_lane = str(entry_runtime.get("lane", "")).strip()
+                    entry_role = str(entry_runtime.get("role", "")).strip().lower()
+                    entry_freewine = str(entry_runtime.get("freewineLane", "")).strip()
+                    if lane != entry_lane:
+                        fail(
+                            f"runtimeContract lane mismatch for {artifact_key}: "
+                            f"contents={entry_lane} artifact-map={lane}",
+                            failures,
+                        )
+                    if role != entry_role:
+                        fail(
+                            f"runtimeContract role mismatch for {artifact_key}: "
+                            f"contents={entry_role} artifact-map={role}",
+                            failures,
+                        )
+                    if freewine_lane != entry_freewine:
+                        fail(
+                            f"runtimeContract freewineLane mismatch for {artifact_key}: "
+                            f"contents={entry_freewine} artifact-map={freewine_lane}",
+                            failures,
+                        )
+                if internal_type in GRAPHICS_TRANSLATION_INTERNAL_TYPES:
+                    legacy_fallback = runtime_meta.get("legacyDxFallback")
+                    if not isinstance(legacy_fallback, dict):
+                        fail(
+                            f"artifact-source-map {artifact_key} runtimeContract.legacyDxFallback "
+                            "must be object",
+                            failures,
+                        )
+                    else:
+                        engine = str(legacy_fallback.get("engine", "")).strip().lower()
+                        if engine != "wined3d":
+                            fail(
+                                f"artifact-source-map {artifact_key} runtimeContract.legacyDxFallback.engine "
+                                f"must be wined3d; got {engine}",
+                                failures,
+                            )
+                        if not is_non_empty_string_list(legacy_fallback.get("targetApis")):
+                            fail(
+                                f"artifact-source-map {artifact_key} runtimeContract.legacyDxFallback.targetApis "
+                                "must be non-empty string[]",
+                                failures,
+                            )
+                    validate_wrapper_contract(
+                        runtime_meta.get("wrapperContract"),
+                        f"artifact-source-map {artifact_key} runtimeContract",
+                        failures,
+                    )
+                    if isinstance(entry_runtime, dict):
+                        entry_wrapper = entry_runtime.get("wrapperContract")
+                        artifact_wrapper = runtime_meta.get("wrapperContract")
+                        entry_default = (
+                            str(entry_wrapper.get("defaultProfile", "")).strip()
+                            if isinstance(entry_wrapper, dict)
+                            else ""
+                        )
+                        artifact_default = (
+                            str(artifact_wrapper.get("defaultProfile", "")).strip()
+                            if isinstance(artifact_wrapper, dict)
+                            else ""
+                        )
+                        if entry_default != artifact_default:
+                            fail(
+                                f"runtimeContract wrapper defaultProfile mismatch for {artifact_key}: "
+                                f"contents={entry_default} artifact-map={artifact_default}",
+                                failures,
+                            )
+
+            if isinstance(forensic_meta, dict):
+                issue_bundle_keys = forensic_meta.get("issueBundleKeys")
+                if not is_non_empty_string_list(issue_bundle_keys):
+                    fail(
+                        f"artifact-source-map {artifact_key} forensic.issueBundleKeys must be non-empty string[]",
+                        failures,
+                    )
+                live_topics = forensic_meta.get("liveDiagnosticsTopics")
+                if not is_non_empty_string_list(live_topics):
+                    fail(
+                        f"artifact-source-map {artifact_key} forensic.liveDiagnosticsTopics must be non-empty string[]",
+                        failures,
+                    )
 
 
 def check_patch_contract(patch_path: Path, failures: List[str]) -> None:
@@ -523,20 +821,17 @@ def main(argv: Sequence[str]) -> int:
 
     contents_path = root / "contents/contents.json"
     artifact_map_path = root / "ci/winlator/artifact-source-map.json"
-    patch_path = root / "ci/winlator/patches/0001-mainline-full-stack-consolidated.patch"
 
     failures: List[str] = []
     warnings: List[str] = []
 
-    for path in (contents_path, artifact_map_path, patch_path):
+    for path in (contents_path, artifact_map_path):
         if not path.is_file():
             fail(f"required file missing: {path}", failures)
 
     if not failures:
         check_contents_schema(contents_path, artifact_map_path, failures, warnings)
-        check_patch_contract(patch_path, failures)
         check_contents_validator_contract(root, failures)
-        check_release_publish_contract(root, failures)
         check_workflow_contract(root, failures)
 
     result = CheckResult(failures=failures, warnings=warnings)

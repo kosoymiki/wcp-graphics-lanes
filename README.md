@@ -1,23 +1,34 @@
 # WCP Graphics Lanes
 
-Graphics and Vulkan packaging repository for Aeolator Contents.
+Graphics build/control repository for Ae.solator.
 
 ## Scope
 
-- Build and publish:
-  - AeTurnip ZIP lane
-  - AeOpenGLDriver ZIP lane
-  - dgVoodoo ZIP lane
-  - DXVK GPLAsync WCP lanes (generic + arm64ec)
-  - VKD3D-Proton WCP lanes (generic + arm64ec)
-  - Vulkan SDK WCP lanes (arm64 + x86_64)
+- Build graphics packages and wrapper contracts from source:
+  - AeTurnip ZIP (Mesa main, Android)
+  - AeOpenGLDriver ZIP (Mesa main, Android GL fallback)
+  - dgVoodoo WCP (upstream wrapper + proxy overlay)
+  - DXVK GPLAsync WCP
+  - VKD3D-Proton WCP
+  - Vulkan SDK WCP
+- Embed runtime compatibility metadata:
+  - `ae-runtime-contract.json`
+  - `wrapperContract`
+  - `ae-runtime-wrapper.env`
 
-## Release Host
+## Release Routing
 
-- All graphics lanes are published in `kosoymiki/wcp-graphics-lanes` releases.
-- App/runtime consumers:
-  - `kosoymiki/aeolator`
-  - `kosoymiki/wcp-runtime-lanes`
+- Release host in this repo:
+  - `aeturnip-arm64-latest`
+  - `aeopengl-driver-arm64-latest`
+- Release host in **WCP Archive** (`kosoymiki/wcp-runtime-lanes`):
+  - `dgvoodoo-latest`
+  - `dxvk-gplasync-latest`
+  - `dxvk-gplasync-arm64ec-latest`
+  - `vkd3d-proton-latest`
+  - `vkd3d-proton-arm64ec-latest`
+  - `vulkan-sdk-arm64-latest`
+  - `vulkan-sdk-x86_64-latest`
 
 ## Main Workflows
 
