@@ -138,6 +138,10 @@ EOF_TRACE_H
 #define PROPERTY_VALUE_MAX 92
 #endif
 
+#ifndef PROPERTY_KEY_MAX
+#define PROPERTY_KEY_MAX 32
+#endif
+
 static inline int property_get(const char *key, char *value, const char *default_value)
 {
   (void)key;
@@ -167,6 +171,10 @@ EOF_PROPERTIES_H
 #define LOG_LOG_H
 
 #include <android/log.h>
+
+#ifndef LOG_PRI
+#define LOG_PRI(priority, tag, ...) __android_log_print((priority), (tag), __VA_ARGS__)
+#endif
 
 #endif
 EOF_LOG_H
