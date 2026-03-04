@@ -9,10 +9,10 @@ WORK_DIR="${2:-/tmp/dgvoodoo-wcp-work}"
 : "${DGVOODOO_VERSION_CODE:=1}"
 : "${DGVOODOO_CHANNEL:=stable}"
 : "${DGVOODOO_DELIVERY:=remote}"
-: "${DGVOODOO_RELEASE_TAG:=dgvoodoo-latest}"
-: "${DGVOODOO_ARTIFACT_NAME:=dgvoodoo.wcp}"
-: "${DGVOODOO_SHA256_ARTIFACT_NAME:=SHA256SUMS-dgvoodoo.txt}"
-: "${DGVOODOO_RELEASE_NOTES_NAME:=RELEASE_NOTES-dgvoodoo.md}"
+: "${DGVOODOO_RELEASE_TAG:=dgvoodoo-x86_64-latest}"
+: "${DGVOODOO_ARTIFACT_NAME:=dgvoodoo-x86_64.wcp}"
+: "${DGVOODOO_SHA256_ARTIFACT_NAME:=SHA256SUMS-dgvoodoo-x86_64.txt}"
+: "${DGVOODOO_RELEASE_NOTES_NAME:=RELEASE_NOTES-dgvoodoo-x86_64.md}"
 : "${DGVOODOO_PROFILE_NAME:=Ae dgVoodoo}"
 : "${DGVOODOO_PROFILE_DESCRIPTION:=Ae dgVoodoo upstream wrapper package}"
 : "${DGVOODOO_SOURCE_REPO:=${GITHUB_REPOSITORY:-kosoymiki/wcp-runtime-lanes}}"
@@ -22,6 +22,8 @@ WORK_DIR="${2:-/tmp/dgvoodoo-wcp-work}"
 : "${DGVOODOO_LOCAL_ZIP:=}"
 : "${DGVOODOO_UPSTREAM_ASSET_VARIANT:=dev64}"
 : "${DGVOODOO_FREEWINE_LANE:=freewine11-arm64ec}"
+: "${DGVOODOO_PACKAGE_ARCH:=x86_64}"
+: "${DGVOODOO_LANE_NAME:=}"
 : "${DGVOODOO_PROXY_ENABLE:=1}"
 : "${DGVOODOO_PROXY_MODE:=core}"
 : "${DGVOODOO_PROXY_CORE_DLLS:=D3D8.dll D3D9.dll DDraw.dll D3DImm.dll}"
@@ -59,6 +61,39 @@ json_escape() {
 normalize_lower() {
   local value="${1-}"
   printf '%s' "${value}" | tr '[:upper:]' '[:lower:]'
+}
+
+normalize_package_arch() {
+  local value
+  value="$(normalize_lower "${1-}")"
+  case "${value}" in
+    x64 | amd64 | x86_64) printf '%s' "x86_64" ;;
+    arm64ec | arm64-ec) printf '%s' "arm64ec" ;;
+    all | any | universal | mixed) printf '%s' "universal" ;;
+    *)
+      printf '[dgvoodoo][error] unsupported DGVOODOO_PACKAGE_ARCH: %s\n' "${1-}" >&2
+      exit 1
+      ;;
+  esac
+}
+
+is_arch_enabled() {
+  local package_arch="${1:?package arch required}"
+  local runtime_arch="${2:?runtime arch required}"
+  case "${package_arch}" in
+    x86_64)
+      [[ "${runtime_arch}" == "x86" || "${runtime_arch}" == "x64" ]]
+      ;;
+    arm64ec)
+      [[ "${runtime_arch}" == "x86" || "${runtime_arch}" == "x64" || "${runtime_arch}" == "arm64" || "${runtime_arch}" == "arm64ec" ]]
+      ;;
+    universal)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
 
 resolve_asset_version_name() {
@@ -311,6 +346,15 @@ source_mode="$(normalize_lower "${DGVOODOO_SOURCE_MODE}")"
 if [[ -n "${DGVOODOO_LOCAL_ZIP}" ]]; then
   source_mode="local"
 fi
+package_arch="$(normalize_package_arch "${DGVOODOO_PACKAGE_ARCH}")"
+lane_name="${DGVOODOO_LANE_NAME}"
+if [[ -z "${lane_name}" ]]; then
+  lane_name="dgvoodoo-${package_arch}"
+fi
+aggressive_pref_arch="arm64ec"
+if [[ "${package_arch}" == "x86_64" ]]; then
+  aggressive_pref_arch="x64"
+fi
 
 case "${source_mode}" in
   "" | "auto" | "upstream" | "local") ;;
@@ -395,6 +439,9 @@ if [[ "${DGVOODOO_PROXY_ENABLE}" == "1" ]]; then
   : > "${proxy_map_tsv}"
 
   for arch in x86 x64 arm64 arm64ec; do
+    if ! is_arch_enabled "${package_arch}" "${arch}"; then
+      continue
+    fi
     runtime_dir="$(resolve_runtime_dir "${package_root}" "${arch}" || true)"
     if [[ -z "${runtime_dir}" || ! -d "${runtime_dir}" ]]; then
       continue
@@ -469,25 +516,47 @@ payload_runtime="${wcp_root}/payload/runtime"
 rm -rf "${wcp_root}"
 mkdir -p "${payload_runtime}"
 cp -a "${package_root}/." "${payload_runtime}/"
+
+for runtime_arch in x86 x64 arm64 arm64ec arm64-ec; do
+  normalized_arch="${runtime_arch}"
+  if [[ "${normalized_arch}" == "arm64-ec" ]]; then
+    normalized_arch="arm64ec"
+  fi
+  if ! is_arch_enabled "${package_arch}" "${normalized_arch}"; then
+    rm -rf "${payload_runtime}/MS/${runtime_arch}" "${payload_runtime}/${runtime_arch}"
+  fi
+done
+
 cp -f "${proxy_map_json}" "${wcp_root}/ae-proxy-map.json"
 
-files_json="$(python3 - <<'PY' "${payload_runtime}"
+files_json="$(python3 - <<'PY' "${payload_runtime}" "${package_arch}"
 import json
 import os
 import pathlib
 import sys
 
 root = pathlib.Path(sys.argv[1]).resolve()
+package_arch = sys.argv[2].strip().lower()
 entries = []
 seen = set()
 
-arch_targets = {
-    "x86": "${syswow64}",
-    "x64": "${system32}",
-    "arm64": "${system32}",
-    "arm64ec": "${system32}",
-    "arm64-ec": "${system32}",
-}
+allowed_arches = {"x86", "x64", "arm64", "arm64ec", "arm64-ec"}
+if package_arch == "x86_64":
+    allowed_arches = {"x86", "x64"}
+elif package_arch == "arm64ec":
+    allowed_arches = {"x86", "x64", "arm64", "arm64ec", "arm64-ec"}
+elif package_arch == "universal":
+    allowed_arches = {"x86", "x64", "arm64", "arm64ec", "arm64-ec"}
+else:
+    raise SystemExit(f"unsupported package arch: {package_arch}")
+
+arch_targets = [
+    ("x86", "${syswow64}"),
+    ("x64", "${system32}"),
+    ("arm64", "${system32}"),
+    ("arm64ec", "${system32}"),
+    ("arm64-ec", "${system32}"),
+]
 
 def add_runtime_dir(d: pathlib.Path, target_root: str) -> None:
     if not d.is_dir():
@@ -507,7 +576,9 @@ def add_runtime_dir(d: pathlib.Path, target_root: str) -> None:
         seen.add(key)
         entries.append({"source": source, "target": target})
 
-for arch, target_root in arch_targets.items():
+for arch, target_root in arch_targets:
+    if arch not in allowed_arches:
+        continue
     candidates = [root / "MS" / arch, root / arch]
     for candidate in candidates:
         add_runtime_dir(candidate, target_root)
@@ -543,9 +614,10 @@ EOF_WRAPPER
 cat > "${wcp_root}/ae-runtime-contract.json" <<EOF_RUNTIME
 {
   "schemaVersion": 2,
-  "lane": "dgvoodoo-latest",
+  "lane": "$(json_escape "${lane_name}")",
   "role": "translation-layer",
   "freewineLane": "$(json_escape "${DGVOODOO_FREEWINE_LANE}")",
+  "packageArch": "$(json_escape "${package_arch}")",
   "providerLanes": ["turnip-vulkan", "freedreno-opengl"],
   "translationLayers": ["dgvoodoo", "wined3d", "dxvk", "vkd3d-proton"],
   "providerRoutePolicy": {
@@ -582,7 +654,7 @@ cat > "${wcp_root}/ae-runtime-contract.json" <<EOF_RUNTIME
       "aggressive": {
         "AERO_DX_WRAPPER_MODE": "dgvoodoo",
         "AERO_DGVOODOO_SELECTED": "1",
-        "AERO_DGVOODOO_PREF_ARCH": "arm64ec",
+        "AERO_DGVOODOO_PREF_ARCH": "$(json_escape "${aggressive_pref_arch}")",
         "AERO_DGVOODOO_FORCE_D3D11": "1",
         "AERO_DGVOODOO_VSYNC": "0",
         "AERO_DGVOODOO_FLIP_MODEL": "1"
@@ -623,6 +695,8 @@ cat > "${wcp_root}/ae-runtime-contract.json" <<EOF_RUNTIME
   "build": {
     "upstreamTag": "$(json_escape "${upstream_tag}")",
     "upstreamAsset": "$(json_escape "${asset_name}")",
+    "packageArch": "$(json_escape "${package_arch}")",
+    "lane": "$(json_escape "${lane_name}")",
     "proxyMode": "$(json_escape "${DGVOODOO_PROXY_MODE}")",
     "proxyDllCount": ${proxy_count}
   }
@@ -631,7 +705,8 @@ EOF_RUNTIME
 
 cat > "${wcp_root}/aero-source.json" <<EOF_SOURCE
 {
-  "lane": "dgvoodoo-latest",
+  "lane": "$(json_escape "${lane_name}")",
+  "packageArch": "$(json_escape "${package_arch}")",
   "upstreamTag": "$(json_escape "${upstream_tag}")",
   "upstreamAsset": "$(json_escape "${asset_name}")",
   "upstreamReleaseUrl": "$(json_escape "${release_url}")",
@@ -664,9 +739,10 @@ cat > "${wcp_root}/profile.json" <<EOF_PROFILE
   "files": ${files_json},
   "runtimeContract": {
     "schemaVersion": 2,
-    "lane": "dgvoodoo-latest",
+    "lane": "$(json_escape "${lane_name}")",
     "role": "translation-layer",
     "freewineLane": "$(json_escape "${DGVOODOO_FREEWINE_LANE}")",
+    "packageArch": "$(json_escape "${package_arch}")",
     "providerLanes": ["turnip-vulkan", "freedreno-opengl"],
     "translationLayers": ["dgvoodoo", "wined3d", "dxvk", "vkd3d-proton"],
     "legacyDxFallback": {
@@ -698,7 +774,7 @@ cat > "${wcp_root}/profile.json" <<EOF_PROFILE
         "aggressive": {
           "AERO_DX_WRAPPER_MODE": "dgvoodoo",
           "AERO_DGVOODOO_SELECTED": "1",
-          "AERO_DGVOODOO_PREF_ARCH": "arm64ec",
+          "AERO_DGVOODOO_PREF_ARCH": "$(json_escape "${aggressive_pref_arch}")",
           "AERO_DGVOODOO_FORCE_D3D11": "1",
           "AERO_DGVOODOO_VSYNC": "0",
           "AERO_DGVOODOO_FLIP_MODEL": "1"
@@ -740,6 +816,8 @@ Ae dgVoodoo WCP package
 
 RU:
 - Формат: WCP, ставится через Winlator Contents
+- Package arch: ${package_arch}
+- Lane: ${lane_name}
 - Режим источника: ${source_mode}
 - Вариант апстрим-ассета: ${DGVOODOO_UPSTREAM_ASSET_VARIANT}
 - Upstream tag: ${upstream_tag}
@@ -750,6 +828,8 @@ RU:
 
 EN:
 - Format: WCP, installable via Winlator Contents
+- Package arch: ${package_arch}
+- Lane: ${lane_name}
 - Source mode: ${source_mode}
 - Upstream asset variant: ${DGVOODOO_UPSTREAM_ASSET_VARIANT}
 - Upstream tag: ${upstream_tag}
@@ -767,6 +847,8 @@ DGVOODOO_UPSTREAM_TAG=${upstream_tag}
 DGVOODOO_UPSTREAM_ASSET=${asset_name}
 DGVOODOO_SOURCE_MODE=${source_mode}
 DGVOODOO_UPSTREAM_ASSET_VARIANT=${DGVOODOO_UPSTREAM_ASSET_VARIANT}
+DGVOODOO_PACKAGE_ARCH=${package_arch}
+DGVOODOO_LANE_NAME=${lane_name}
 DGVOODOO_ARTIFACT_PATH=${artifact_path}
 DGVOODOO_ARTIFACT_NAME=${DGVOODOO_ARTIFACT_NAME}
 DGVOODOO_SHA256_PATH=${sha_path}
@@ -776,5 +858,5 @@ DGVOODOO_PROXY_MODE=${DGVOODOO_PROXY_MODE}
 DGVOODOO_PROXY_DLL_COUNT=${proxy_count}
 EOF_META
 
-printf '[dgvoodoo] upstream=%s proxy_mode=%s proxy_count=%s artifact=%s\n' \
-  "${upstream_tag}" "${DGVOODOO_PROXY_MODE}" "${proxy_count}" "${artifact_path}"
+printf '[dgvoodoo] lane=%s arch=%s upstream=%s proxy_mode=%s proxy_count=%s artifact=%s\n' \
+  "${lane_name}" "${package_arch}" "${upstream_tag}" "${DGVOODOO_PROXY_MODE}" "${proxy_count}" "${artifact_path}"

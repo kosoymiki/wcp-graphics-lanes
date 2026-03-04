@@ -35,7 +35,7 @@
 - [x] `FreeWine` entry points to runtime release repo (`wcp-runtime-lanes`) with rolling tag (`freewine11-arm64ec-latest`)
 - [x] Runtime/archive entries point to `wcp-runtime-lanes` (`freewine11`, `vulkan-sdk-*`, `dxvk*`, `vkd3d*`)
 - [x] Provider ZIP entries point to graphics release repo (`wcp-graphics-lanes`) (`aeturnip`, `aeopengl-driver`)
-- [x] `dgVoodoo` entry points to archive release repo (`wcp-runtime-lanes`) as WCP (`dgvoodoo.wcp`)
+- [x] `dgVoodoo` entries point to archive release repo (`wcp-runtime-lanes`) as split WCP lanes (`dgvoodoo-x86_64.wcp`, `dgvoodoo-arm64ec.wcp`)
 - [x] Stable bundle release flow keeps `wcp-stable` publish lane in `ci/release/publish-0.9c.sh`
 - [x] `channel`, `delivery`, `displayCategory`, `sourceRepo`, `releaseTag` are present
 - [x] Wine-family entries carry `internalType=wine`; Proton legacy lanes are removed from active overlay

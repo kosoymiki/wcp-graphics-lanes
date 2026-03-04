@@ -138,7 +138,8 @@ WORKFLOW_REQUIRED_TOKENS = {
         "Validate AeDXVK runtime contract",
         "Validate AeVKD3D runtime contract",
         "Validate dgVoodoo runtime contract",
-        "DGVOODOO_RELEASE_TAG: dgvoodoo-latest",
+        "release_tag: dgvoodoo-x86_64-latest",
+        "release_tag: dgvoodoo-arm64ec-latest",
     ],
 }
 
@@ -154,7 +155,8 @@ ARTIFACT_EXPECTED_ENTRIES = {
     "aevkd3dproton": {"internalType": "vkd3d", "artifactName": "vkd3d-proton.wcp"},
     "aevkd3dprotonarm64ec": {"internalType": "vkd3d", "artifactName": "vkd3d-proton-arm64ec.wcp"},
     "aeturniparm64": {"internalType": "turnip", "artifactName": "aeturnip-arm64.zip"},
-    "dgvoodoolatest": {"internalType": "dgvoodoo", "artifactName": "dgvoodoo.wcp"},
+    "dgvoodoox86_64": {"internalType": "dgvoodoo", "artifactName": "dgvoodoo-x86_64.wcp"},
+    "dgvoodooarm64ec": {"internalType": "dgvoodoo", "artifactName": "dgvoodoo-arm64ec.wcp"},
     "aeopengldriverarm64": {"internalType": "freedreno", "artifactName": "aeopengl-driver-arm64.zip"},
 }
 

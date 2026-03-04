@@ -21,7 +21,8 @@
   - `vulkan-sdk-*`
   - `dxvk-gplasync*`
   - `vkd3d-proton*`
-  - `dgvoodoo`
+  - `dgvoodoo-x86_64`
+  - `dgvoodoo-arm64ec`
 - `kosoymiki/wcp-graphics-lanes`:
   - `aeturnip-arm64.zip`
   - `aeopengl-driver-arm64.zip`

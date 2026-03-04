@@ -117,7 +117,7 @@ if [[ -z "${package_root}" || ! -d "${package_root}" ]]; then
   exit 1
 fi
 
-required_dlls=(d3d8.dll d3d9.dll d3d10.dll d3d10_1.dll d3d10core.dll d3d11.dll dxgi.dll)
+required_dlls=(d3d8.dll d3d9.dll d3d10_1.dll d3d10core.dll d3d11.dll dxgi.dll)
 for dll in "${required_dlls[@]}"; do
   [[ -f "${package_root}/x64/${dll}" ]] || { printf '[aedxvk][error] missing x64/%s\n' "${dll}" >&2; exit 1; }
   [[ -f "${package_root}/x32/${dll}" ]] || { printf '[aedxvk][error] missing x32/%s\n' "${dll}" >&2; exit 1; }

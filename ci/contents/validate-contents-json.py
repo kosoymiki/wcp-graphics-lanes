@@ -256,6 +256,8 @@ def main() -> None:
     freedreno_rows = 0
     dgvoodoo_rows = 0
     dgvoodoo_arches = set()
+    dgvoodoo_release_tags = set()
+    dgvoodoo_artifact_names = set()
     dxvk_rows = 0
     vkd3d_rows = 0
     for idx, item in enumerate(data):
@@ -311,6 +313,8 @@ def main() -> None:
             freedreno_rows += 1
         elif type_key == "dgvoodoo":
             dgvoodoo_rows += 1
+            dgvoodoo_release_tags.add(release_tag)
+            dgvoodoo_artifact_names.add(artifact_name)
             arch_match = re.search(r"-(x86_64|arm64ec)$", ver_name)
             if arch_match:
                 dgvoodoo_arches.add(arch_match.group(1))
@@ -391,6 +395,14 @@ def main() -> None:
                 fail(f"entry {idx} dgvoodoo internalType requires dgvoodoo* releaseTag: {release_tag}")
             if "dgvoodoo" not in artifact_name:
                 fail(f"entry {idx} dgvoodoo internalType requires dgvoodoo* artifactName: {artifact_name}")
+            if "x86_64" in ver_name and "x86_64" not in release_tag:
+                fail(f"entry {idx} dgvoodoo x86_64 row requires x86_64 releaseTag: {release_tag}")
+            if "x86_64" in ver_name and "x86_64" not in artifact_name:
+                fail(f"entry {idx} dgvoodoo x86_64 row requires x86_64 artifactName: {artifact_name}")
+            if "arm64ec" in ver_name and "arm64ec" not in release_tag:
+                fail(f"entry {idx} dgvoodoo arm64ec row requires arm64ec releaseTag: {release_tag}")
+            if "arm64ec" in ver_name and "arm64ec" not in artifact_name:
+                fail(f"entry {idx} dgvoodoo arm64ec row requires arm64ec artifactName: {artifact_name}")
         elif internal_type == "dxvk":
             if "dxvk-gplasync" not in release_tag:
                 fail(f"entry {idx} dxvk internalType requires dxvk-gplasync* releaseTag: {release_tag}")
@@ -461,6 +473,10 @@ def main() -> None:
         fail(f"dgvoodoo entries must appear exactly as x86_64+arm64ec pair; got {dgvoodoo_rows}")
     if dgvoodoo_rows == 2 and dgvoodoo_arches != {"x86_64", "arm64ec"}:
         fail(f"dgvoodoo entries must cover exactly x86_64 and arm64ec; got {sorted(dgvoodoo_arches)}")
+    if dgvoodoo_rows == 2 and len(dgvoodoo_release_tags) != 2:
+        fail("dgvoodoo x86_64/arm64ec entries must use distinct releaseTag values")
+    if dgvoodoo_rows == 2 and len(dgvoodoo_artifact_names) != 2:
+        fail("dgvoodoo x86_64/arm64ec entries must use distinct artifactName values")
     if dxvk_rows not in {0, 2}:
         fail(f"dxvk entries must appear exactly as generic+arm64ec pair; got {dxvk_rows}")
     if vkd3d_rows not in {0, 2}:

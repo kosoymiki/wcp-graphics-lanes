@@ -17,13 +17,15 @@ Final split model for graphics/runtime package ownership.
     - `vkd3d-proton-arm64ec-latest`
     - `vulkan-sdk-arm64-latest`
     - `vulkan-sdk-x86_64-latest`
-    - `dgvoodoo-latest`
+    - `dgvoodoo-x86_64-latest`
+    - `dgvoodoo-arm64ec-latest`
 - `kosoymiki/wcp-graphics-lanes`
   - Graphics build/control repo and release host for ZIP graphics providers:
     - `aeturnip-arm64-latest`
     - `aeopengl-driver-arm64-latest`
   - Build owner for archive lane:
-    - `dgvoodoo-latest` (published as `dgvoodoo.wcp` to `wcp-runtime-lanes`)
+    - `dgvoodoo-x86_64-latest` (published as `dgvoodoo-x86_64.wcp` to `wcp-runtime-lanes`)
+    - `dgvoodoo-arm64ec-latest` (published as `dgvoodoo-arm64ec.wcp` to `wcp-runtime-lanes`)
 - `kosoymiki/winlator-wine-proton-arm64ec-wcp`
   - Legacy monorepo (archived history only, not active source-of-truth).
 

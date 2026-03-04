@@ -334,13 +334,34 @@
         "liveDiagnosticsTopics": ["RUNTIME_GRAPHICS_SUITABILITY", "RUNTIME_DX_ROUTE_POLICY", "RUNTIME_UPSCALE_RUNTIME_MATRIX"]
       }
     },
-    "dgvoodoolatest": {
+    "dgvoodoox86_64": {
       "kind": "wcp",
-      "description": "Ae dgVoodoo wrapper WCP package",
-      "remoteUrl": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/dgvoodoo-latest/dgvoodoo.wcp",
-      "sha256Url": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/dgvoodoo-latest/SHA256SUMS-dgvoodoo.txt",
+      "description": "Ae dgVoodoo wrapper WCP package (x86_64 lane)",
+      "remoteUrl": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/dgvoodoo-x86_64-latest/dgvoodoo-x86_64.wcp",
+      "sha256Url": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/dgvoodoo-x86_64-latest/SHA256SUMS-dgvoodoo-x86_64.txt",
       "runtimeContract": {
         "lane": "dgvoodoo-x86_64",
+        "role": "legacy-wrapper",
+        "freewineLane": "freewine11-arm64ec",
+        "translationLayers": ["wined3d", "dxvk", "vkd3d-proton"],
+        "legacyDxFallback": {
+          "engine": "dgvoodoo",
+          "targetApis": ["ddraw", "d3d1", "d3d2", "d3d3", "d3d5", "d3d6", "d3d7", "glide"],
+          "activationHint": "legacy-wrapper-selected"
+        }
+      },
+      "forensic": {
+        "issueBundleKeys": ["graphics-runtime-matrix.json", "runtime-mismatch-matrix.json", "runtime-conflict-contour.json"],
+        "liveDiagnosticsTopics": ["RUNTIME_GRAPHICS_SUITABILITY", "RUNTIME_DX_ROUTE_POLICY", "RUNTIME_UPSCALE_RUNTIME_MATRIX"]
+      }
+    },
+    "dgvoodooarm64ec": {
+      "kind": "wcp",
+      "description": "Ae dgVoodoo wrapper WCP package (arm64ec lane)",
+      "remoteUrl": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/dgvoodoo-arm64ec-latest/dgvoodoo-arm64ec.wcp",
+      "sha256Url": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/dgvoodoo-arm64ec-latest/SHA256SUMS-dgvoodoo-arm64ec.txt",
+      "runtimeContract": {
+        "lane": "dgvoodoo-arm64ec",
         "role": "legacy-wrapper",
         "freewineLane": "freewine11-arm64ec",
         "translationLayers": ["wined3d", "dxvk", "vkd3d-proton"],

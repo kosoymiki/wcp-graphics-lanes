@@ -128,6 +128,40 @@ static inline void atrace_end(uint64_t tag)
 
 #endif
 EOF_TRACE_H
+  cat > "${include_root}/cutils/properties.h" <<'EOF_PROPERTIES_H'
+#ifndef CUTILS_PROPERTIES_H
+#define CUTILS_PROPERTIES_H
+
+#include <string.h>
+
+#ifndef PROPERTY_VALUE_MAX
+#define PROPERTY_VALUE_MAX 92
+#endif
+
+static inline int property_get(const char *key, char *value, const char *default_value)
+{
+  (void)key;
+  if (!value) return 0;
+  if (!default_value) {
+    value[0] = '\0';
+    return 0;
+  }
+  size_t len = strlen(default_value);
+  if (len >= PROPERTY_VALUE_MAX) len = PROPERTY_VALUE_MAX - 1;
+  memcpy(value, default_value, len);
+  value[len] = '\0';
+  return (int)len;
+}
+
+static inline int property_set(const char *key, const char *value)
+{
+  (void)key;
+  (void)value;
+  return 0;
+}
+
+#endif
+EOF_PROPERTIES_H
   cat > "${include_root}/log/log.h" <<'EOF_LOG_H'
 #ifndef LOG_LOG_H
 #define LOG_LOG_H

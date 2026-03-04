@@ -31,8 +31,8 @@ blind-import donor graphics stacks into the current Winlator runtime.
 - Source: `https://dege.freeweb.hu/`
 - Status: `active as archive WCP lane`
 - Current rule:
-  - active `dgVoodoo` package lane in `Contents` (`dgvoodoo.wcp`)
-  - release host: `wcp-runtime-lanes` (`dgvoodoo-latest`)
+  - active `dgVoodoo` package lanes in `Contents` (`dgvoodoo-x86_64.wcp`, `dgvoodoo-arm64ec.wcp`)
+  - release host: `wcp-runtime-lanes` (`dgvoodoo-x86_64-latest`, `dgvoodoo-arm64ec-latest`)
   - build/proxy orchestration owner: `wcp-graphics-lanes`
   - translation route contracts include `dgVoodoo` as legacy API lane with explicit fallback to `WineD3D`
 

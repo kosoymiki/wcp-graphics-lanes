@@ -22,7 +22,8 @@ Graphics build/control repository for Ae.solator.
   - `aeturnip-arm64-latest`
   - `aeopengl-driver-arm64-latest`
 - Release host in **WCP Archive** (`kosoymiki/wcp-runtime-lanes`):
-  - `dgvoodoo-latest`
+  - `dgvoodoo-x86_64-latest`
+  - `dgvoodoo-arm64ec-latest`
   - `dxvk-gplasync-latest`
   - `dxvk-gplasync-arm64ec-latest`
   - `vkd3d-proton-latest`
@@ -40,7 +41,9 @@ Graphics build/control repository for Ae.solator.
 - `ci/graphics/build-dgvoodoo-wcp.sh` supports:
   - upstream auto mode (`DGVOODOO_SOURCE_MODE=auto`) with `dev64` asset preference
   - pinned local ingest (`DGVOODOO_SOURCE_MODE=local`, `DGVOODOO_LOCAL_ZIP=/path/to/dgVoodoo2_86_5_dev64.zip`)
-- This keeps archive output stable (`dgvoodoo.wcp`) while allowing direct import of dev64-formatted upstream ZIPs.
+- CI emits two architecture lanes:
+  - `dgvoodoo-x86_64.wcp` (`dgvoodoo-x86_64-latest`)
+  - `dgvoodoo-arm64ec.wcp` (`dgvoodoo-arm64ec-latest`)
 
 ## Docs
 

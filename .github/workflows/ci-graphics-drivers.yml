@@ -62,7 +62,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             curl jq zip git meson ninja-build pkg-config python3 python3-pip python3-mako python3-ply \
-            bison flex ccache dpkg-dev glslang-tools spirv-tools libelf-dev
+            bison flex ccache dpkg-dev glslang-tools spirv-tools libspirv-tools-dev libelf-dev
 
       - name: Bootstrap Meson >= 1.4
         run: |
@@ -154,7 +154,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             zip zstd git curl meson ninja-build pkg-config python3 python3-pip python3-mako python3-ply \
-            bison flex ccache dpkg-dev glslang-tools spirv-tools libelf-dev
+            bison flex ccache dpkg-dev glslang-tools spirv-tools libspirv-tools-dev libelf-dev
 
       - name: Bootstrap Meson >= 1.4
         run: |
@@ -424,15 +424,25 @@ jobs:
           bodyFile: ${{ env.AEVKD3D_RELEASE_NOTES }}
 
   build-dgvoodoo-wcp:
-    name: Build dgVoodoo WCP package
+    name: Build dgVoodoo WCP package (${{ matrix.flavor }})
     runs-on: ubuntu-24.04
     timeout-minutes: 45
-    env:
-      DGVOODOO_RELEASE_NAME: Ae dgVoodoo Latest
-      DGVOODOO_RELEASE_TAG: dgvoodoo-latest
-      DGVOODOO_ARTIFACT_NAME: dgvoodoo.wcp
-      DGVOODOO_SHA256_ARTIFACT_NAME: SHA256SUMS-dgvoodoo.txt
-      DGVOODOO_RELEASE_NOTES_NAME: RELEASE_NOTES-dgvoodoo.md
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - flavor: x86_64
+            release_name: Ae dgVoodoo x86_64 Latest
+            release_tag: dgvoodoo-x86_64-latest
+            artifact_name: dgvoodoo-x86_64.wcp
+            sha_name: SHA256SUMS-dgvoodoo-x86_64.txt
+            notes_name: RELEASE_NOTES-dgvoodoo-x86_64.md
+          - flavor: arm64ec
+            release_name: Ae dgVoodoo ARM64EC Latest
+            release_tag: dgvoodoo-arm64ec-latest
+            artifact_name: dgvoodoo-arm64ec.wcp
+            sha_name: SHA256SUMS-dgvoodoo-arm64ec.txt
+            notes_name: RELEASE_NOTES-dgvoodoo-arm64ec.md
 
     steps:
       - name: Checkout
@@ -448,14 +458,16 @@ jobs:
       - name: Build dgVoodoo WCP
         run: |
           DGVOODOO_SOURCE_REPO="${DGVOODOO_SOURCE_REPO}" \
-          DGVOODOO_RELEASE_TAG="${DGVOODOO_RELEASE_TAG}" \
-          DGVOODOO_ARTIFACT_NAME="${DGVOODOO_ARTIFACT_NAME}" \
-          DGVOODOO_SHA256_ARTIFACT_NAME="${DGVOODOO_SHA256_ARTIFACT_NAME}" \
-          DGVOODOO_RELEASE_NOTES_NAME="${DGVOODOO_RELEASE_NOTES_NAME}" \
+          DGVOODOO_RELEASE_TAG="${{ matrix.release_tag }}" \
+          DGVOODOO_ARTIFACT_NAME="${{ matrix.artifact_name }}" \
+          DGVOODOO_SHA256_ARTIFACT_NAME="${{ matrix.sha_name }}" \
+          DGVOODOO_RELEASE_NOTES_NAME="${{ matrix.notes_name }}" \
+          DGVOODOO_PACKAGE_ARCH="${{ matrix.flavor }}" \
+          DGVOODOO_LANE_NAME="dgvoodoo-${{ matrix.flavor }}" \
           DGVOODOO_SOURCE_MODE="auto" \
           DGVOODOO_UPSTREAM_ASSET_VARIANT="dev64" \
-          DGVOODOO_PROFILE_NAME="Ae dgVoodoo" \
-          DGVOODOO_PROFILE_DESCRIPTION="Ae dgVoodoo upstream wrapper package (WCP archive lane)" \
+          DGVOODOO_PROFILE_NAME="Ae dgVoodoo (${{ matrix.flavor }})" \
+          DGVOODOO_PROFILE_DESCRIPTION="Ae dgVoodoo upstream wrapper package (WCP archive lane, ${{ matrix.flavor }})" \
           bash ci/graphics/build-dgvoodoo-wcp.sh \
             "${RUNNER_TEMP}/dgvoodoo-out" \
             "${RUNNER_TEMP}/dgvoodoo-work"
@@ -473,7 +485,7 @@ jobs:
         if: env.AEO_UPLOAD_ARTIFACTS == '1'
         uses: actions/upload-artifact@v6
         with:
-          name: dgvoodoo-wcp
+          name: dgvoodoo-wcp-${{ matrix.flavor }}
           path: |
             ${{ env.DGVOODOO_ARTIFACT_PATH }}
             ${{ env.DGVOODOO_SHA256_PATH }}
@@ -484,10 +496,12 @@ jobs:
       - name: Publish summary
         run: |
           {
-            echo "## dgVoodoo"
+            echo "## dgVoodoo (${{ matrix.flavor }})"
             echo
             echo "- Upstream tag: \`${DGVOODOO_UPSTREAM_TAG}\`"
             echo "- Upstream asset: \`${DGVOODOO_UPSTREAM_ASSET}\`"
+            echo "- Lane: \`${DGVOODOO_LANE_NAME}\`"
+            echo "- Package arch: \`${DGVOODOO_PACKAGE_ARCH}\`"
             echo "- Proxy mode: \`${DGVOODOO_PROXY_MODE}\`"
             echo "- Proxy DLL count: \`${DGVOODOO_PROXY_DLL_COUNT}\`"
             echo "- Artifact: \`${DGVOODOO_ARTIFACT_NAME}\`"
@@ -500,8 +514,8 @@ jobs:
           token: ${{ secrets.AEO_RELEASE_TOKEN || github.token }}
           owner: ${{ env.GRAPHICS_RELEASE_OWNER }}
           repo: ${{ env.WCP_ARCHIVE_RELEASE_REPO }}
-          tag: ${{ env.DGVOODOO_RELEASE_TAG }}
-          name: ${{ env.DGVOODOO_RELEASE_NAME }}
+          tag: ${{ matrix.release_tag }}
+          name: ${{ matrix.release_name }}
           allowUpdates: true
           prerelease: true
           removeArtifacts: true
