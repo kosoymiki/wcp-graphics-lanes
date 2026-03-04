@@ -104,7 +104,7 @@ disable_freedreno_libarchive_fallback() {
 
 prepare_android_cutils_trace_stub() {
   local include_root="${1:?include root required}"
-  mkdir -p "${include_root}/cutils"
+  mkdir -p "${include_root}/cutils" "${include_root}/log"
   cat > "${include_root}/cutils/trace.h" <<'EOF_TRACE_H'
 #ifndef CUTILS_TRACE_H
 #define CUTILS_TRACE_H
@@ -128,6 +128,14 @@ static inline void atrace_end(uint64_t tag)
 
 #endif
 EOF_TRACE_H
+  cat > "${include_root}/log/log.h" <<'EOF_LOG_H'
+#ifndef LOG_LOG_H
+#define LOG_LOG_H
+
+#include <android/log.h>
+
+#endif
+EOF_LOG_H
   printf '%s' "${include_root}"
 }
 

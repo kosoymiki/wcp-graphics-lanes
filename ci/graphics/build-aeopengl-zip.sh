@@ -101,6 +101,7 @@ meson setup "${build_dir}" "${source_dir}" \
   -Dgallium-drivers=freedreno,softpipe,zink \
   -Dvulkan-drivers=freedreno \
   -Dfreedreno-kmds=kgsl \
+  -Dzstd=disabled \
   -Dshared-glapi=enabled
 
 ninja -C "${build_dir}" -j "${MESA_BUILD_JOBS:-$(nproc)}" install

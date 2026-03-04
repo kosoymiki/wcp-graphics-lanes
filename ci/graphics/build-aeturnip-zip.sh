@@ -83,6 +83,7 @@ meson setup "${build_dir}" "${source_dir}" \
   -Dgles1=disabled \
   -Dgles2=disabled \
   -Dllvm=disabled \
+  -Dzstd=disabled \
   -Dshared-glapi=disabled
 
 ninja -C "${build_dir}" -j "${MESA_BUILD_JOBS:-$(nproc)}" install
