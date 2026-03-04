@@ -1,0 +1,21 @@
+# Local build outputs and working trees
+/out/
+/work/
+
+# Local logs and archives
+*.log
+*.log.*
+*.log.zip
+prefixPack.txz
+
+# Patch rejection files from manual patch/debug work
+*.rej
+
+# Generated helper outputs
+docs/WINLATOR_LUDASHI_REFLECTIVE_ANALYSIS.md
+__pycache__/
+ci/**/tkg-ge-*-work/
+ci/wine11-arm64ec/transfer-lanes/tkg-ge-wave6-runtime/patches-pre-stack-rebase/
+
+# OS/editor noise
+.DS_Store

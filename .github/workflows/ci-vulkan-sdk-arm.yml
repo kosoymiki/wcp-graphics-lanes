@@ -1,0 +1,201 @@
+name: Build Vulkan SDK Contents Packages
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "ci/vulkan/**"
+      - "contents/contents.json"
+      - "ci/contents/validate-contents-json.py"
+      - "ci/validation/check-contents-qa-contract.py"
+      - "ci/winlator/artifact-source-map.json"
+      - ".github/workflows/ci-vulkan-sdk-arm.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 0'
+
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: write
+
+env:
+  WCP_VERSION_CODE: "1"
+  WCP_CHANNEL: stable
+  WCP_DELIVERY: remote
+  WCP_PROFILE_TYPE: VulkanSDK
+  WCP_DISPLAY_CATEGORY: Vulkan SDK
+  WCP_RELEASE_OWNER: kosoymiki
+  WCP_RELEASE_REPO: wcp-graphics-lanes
+  WCP_SOURCE_REPO: kosoymiki/wcp-graphics-lanes
+  VULKAN_SDK_LATEST_JSON_URL: https://vulkan.lunarg.com/sdk/latest/linux.json
+  VULKAN_SDK_LINUX_SDK_URL: https://sdk.lunarg.com/sdk/download/latest/linux/vulkan-sdk.tar.xz
+
+jobs:
+  build-vulkan-sdk-arm64:
+    name: Build Vulkan SDK ARM64 WCP
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 120
+    env:
+      WCP_NAME: vulkan-sdk-arm64
+      WCP_PROFILE_NAME: Vulkan SDK ARM64 Toolkit
+      WCP_PROFILE_DESCRIPTION: Vulkan SDK ARM64 Toolkit for Ae.solator Contents
+      WCP_RELEASE_NAME: Vulkan SDK ARM64 Latest
+      WCP_RELEASE_TAG: vulkan-sdk-arm64-latest
+      VULKAN_SDK_LAYOUT_ARCH: arm64
+      VULKAN_SDK_SOURCE_ARCH: arm64
+      VULKAN_SDK_DOWNLOAD_URL: ${{ env.VULKAN_SDK_LINUX_SDK_URL }}
+      VULKAN_SDK_LATEST_JSON_URL: ${{ env.VULKAN_SDK_LATEST_JSON_URL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake ninja-build gcc-14 g++-14 bison ocaml-core xz-utils pkg-config python3-pip jq curl \
+            libglm-dev libxcb-dri3-0 libxcb-present0 libpciaccess0 libpng-dev \
+            libxcb-keysyms1-dev libxcb-dri3-dev libx11-dev libwayland-dev \
+            libxrandr-dev libxcb-randr0-dev libxcb-ewmh-dev libx11-xcb-dev \
+            liblz4-dev libzstd-dev libxml2-dev wayland-protocols
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
+          pip3 install setuptools wheel
+
+      - name: Build Vulkan SDK ARM64 WCP contents package
+        run: |
+          bash ci/vulkan/build-sdk-wcp.sh \
+            "${RUNNER_TEMP}/vulkan-sdk-arm64-wcp-out" \
+            "${RUNNER_TEMP}/vulkan-sdk-arm64-wcp-work"
+          while IFS='=' read -r key value; do
+            printf '%s=%s\n' "${key}" "${value}" >> "${GITHUB_ENV}"
+          done < "${RUNNER_TEMP}/vulkan-sdk-arm64-wcp-out/wcp-metadata.env"
+
+      - name: Upload Vulkan SDK ARM64 WCP artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ env.WCP_NAME }}
+          path: |
+            ${{ env.WCP_ARTIFACT_PATH }}
+            ${{ env.WCP_SHA256_PATH }}
+            ${{ env.WCP_RELEASE_NOTES }}
+          compression-level: 0
+          retention-days: 7
+
+      - name: Publish summary
+        run: |
+          {
+            echo "## Vulkan SDK ARM64"
+            echo
+            echo "- Version: \`${VK_SDK_VERSION}\`"
+            echo "- Contents package: \`${WCP_ARTIFACT_NAME}\`"
+            echo "- Release tag: \`${WCP_RELEASE_TAG}\`"
+            echo "- Runner: \`ubuntu-24.04-arm\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Validate split release token
+        if: github.event_name != 'pull_request'
+        env:
+          AEO_RELEASE_TOKEN: ${{ secrets.AEO_RELEASE_TOKEN }}
+        run: |
+          set -euxo pipefail
+          test -n "${AEO_RELEASE_TOKEN}"
+
+      - name: Publish to GitHub Release
+        if: github.event_name != 'pull_request'
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.AEO_RELEASE_TOKEN }}
+          owner: ${{ env.WCP_RELEASE_OWNER }}
+          repo: ${{ env.WCP_RELEASE_REPO }}
+          tag: ${{ env.WCP_RELEASE_TAG }}
+          name: ${{ env.WCP_RELEASE_NAME }}
+          allowUpdates: true
+          prerelease: true
+          removeArtifacts: true
+          artifacts: ${{ env.WCP_ARTIFACT_PATH }},${{ env.WCP_SHA256_PATH }}
+          artifactErrorsFailBuild: true
+          bodyFile: ${{ env.WCP_RELEASE_NOTES }}
+
+  build-vulkan-sdk-x86_64:
+    name: Build Vulkan SDK x86_64 WCP
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      WCP_NAME: vulkan-sdk-x86_64
+      WCP_PROFILE_NAME: Vulkan SDK x86_64 Toolkit
+      WCP_PROFILE_DESCRIPTION: Vulkan SDK x86_64 Toolkit for Ae.solator Contents
+      WCP_RELEASE_NAME: Vulkan SDK x86_64 Latest
+      WCP_RELEASE_TAG: vulkan-sdk-x86_64-latest
+      VULKAN_SDK_LAYOUT_ARCH: x86_64
+      VULKAN_SDK_SOURCE_ARCH: x86_64
+      VULKAN_SDK_DOWNLOAD_URL: ${{ env.VULKAN_SDK_LINUX_SDK_URL }}
+      VULKAN_SDK_LATEST_JSON_URL: ${{ env.VULKAN_SDK_LATEST_JSON_URL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xz-utils jq curl
+
+      - name: Build Vulkan SDK x86_64 WCP contents package
+        run: |
+          bash ci/vulkan/build-sdk-wcp.sh \
+            "${RUNNER_TEMP}/vulkan-sdk-x86_64-wcp-out" \
+            "${RUNNER_TEMP}/vulkan-sdk-x86_64-wcp-work"
+          while IFS='=' read -r key value; do
+            printf '%s=%s\n' "${key}" "${value}" >> "${GITHUB_ENV}"
+          done < "${RUNNER_TEMP}/vulkan-sdk-x86_64-wcp-out/wcp-metadata.env"
+
+      - name: Upload Vulkan SDK x86_64 WCP artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ env.WCP_NAME }}
+          path: |
+            ${{ env.WCP_ARTIFACT_PATH }}
+            ${{ env.WCP_SHA256_PATH }}
+            ${{ env.WCP_RELEASE_NOTES }}
+          compression-level: 0
+          retention-days: 7
+
+      - name: Publish summary
+        run: |
+          {
+            echo "## Vulkan SDK x86_64"
+            echo
+            echo "- Version: \`${VK_SDK_VERSION}\`"
+            echo "- Contents package: \`${WCP_ARTIFACT_NAME}\`"
+            echo "- Release tag: \`${WCP_RELEASE_TAG}\`"
+            echo "- Runner: \`ubuntu-24.04\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Validate split release token
+        if: github.event_name != 'pull_request'
+        env:
+          AEO_RELEASE_TOKEN: ${{ secrets.AEO_RELEASE_TOKEN }}
+        run: |
+          set -euxo pipefail
+          test -n "${AEO_RELEASE_TOKEN}"
+
+      - name: Publish to GitHub Release
+        if: github.event_name != 'pull_request'
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.AEO_RELEASE_TOKEN }}
+          owner: ${{ env.WCP_RELEASE_OWNER }}
+          repo: ${{ env.WCP_RELEASE_REPO }}
+          tag: ${{ env.WCP_RELEASE_TAG }}
+          name: ${{ env.WCP_RELEASE_NAME }}
+          allowUpdates: true
+          prerelease: true
+          removeArtifacts: true
+          artifacts: ${{ env.WCP_ARTIFACT_PATH }},${{ env.WCP_SHA256_PATH }}
+          artifactErrorsFailBuild: true
+          bodyFile: ${{ env.WCP_RELEASE_NOTES }}

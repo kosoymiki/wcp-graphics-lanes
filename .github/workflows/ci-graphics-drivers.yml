@@ -1,0 +1,416 @@
+name: Build Graphics Driver ZIP Packages
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "ci/graphics/**"
+      - "contents/contents.json"
+      - "ci/contents/validate-contents-json.py"
+      - "ci/validation/check-contents-qa-contract.py"
+      - "ci/winlator/artifact-source-map.json"
+      - ".github/workflows/ci-graphics-drivers.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: '30 3 * * 0'
+
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: write
+
+env:
+  GRAPHICS_RELEASE_OWNER: kosoymiki
+  GRAPHICS_RELEASE_REPO: wcp-graphics-lanes
+  AETURNIP_SOURCE_REPO: kosoymiki/wcp-graphics-lanes
+  AEOPENGL_SOURCE_REPO: kosoymiki/wcp-graphics-lanes
+  AEDXVK_SOURCE_REPO: kosoymiki/wcp-graphics-lanes
+  AEVKD3D_SOURCE_REPO: kosoymiki/wcp-graphics-lanes
+  MESA_SOURCE_GIT_URL: https://gitlab.freedesktop.org/mesa/mesa.git
+  AETURNIP_VERSION_NAME: rolling-arm64
+  AEOPENGL_VERSION_NAME: rolling-arm64
+  DGVOODOO_LATEST_RELEASE_API: https://api.github.com/repos/dege-diosg/dgVoodoo2/releases/latest
+  DGVOODOO_VERSION_NAME: 2.86.5
+  DXVK_GPLASYNC_GIT_URL: https://gitlab.com/Ph42oN/dxvk-gplasync.git
+  DXVK_UPSTREAM_GIT_URL: https://github.com/doitsujin/dxvk.git
+  AEDXVK_GENERIC_VERSION_NAME: 2.7.1-1-gplasync
+  AEDXVK_ARM64EC_VERSION_NAME: 2.7.1-1-gplasync-arm64ec
+  VKD3D_PROTON_GIT_URL: https://github.com/HansKristian-Work/vkd3d-proton.git
+  AEVKD3D_GENERIC_VERSION_NAME: 3.0b
+  AEVKD3D_ARM64EC_VERSION_NAME: 3.0b-arm64ec
+
+jobs:
+  build-aeturnip-arm64:
+    name: Build AeTurnip ARM64 independent ZIP driver
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      AETURNIP_RELEASE_NAME: AeTurnip ARM64 Latest
+      AETURNIP_RELEASE_TAG: aeturnip-arm64-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends curl jq unzip zip git
+
+      - name: Build AeTurnip ARM64 ZIP driver
+        run: |
+          bash ci/graphics/build-aeturnip-zip.sh \
+            "${RUNNER_TEMP}/aeturnip-out" \
+            "${RUNNER_TEMP}/aeturnip-work"
+          while IFS='=' read -r key value; do
+            printf '%s=%s\n' "${key}" "${value}" >> "${GITHUB_ENV}"
+          done < "${RUNNER_TEMP}/aeturnip-out/aeturnip-metadata.env"
+
+      - name: Upload AeTurnip artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: aeturnip-arm64
+          path: |
+            ${{ env.AETURNIP_ARTIFACT_PATH }}
+            ${{ env.AETURNIP_SHA256_PATH }}
+            ${{ env.AETURNIP_RELEASE_NOTES }}
+          compression-level: 0
+          retention-days: 7
+
+      - name: Publish summary
+        run: |
+          {
+            echo "## AeTurnip"
+            echo
+            echo "- Mesa exact main ref: \`${MESA_MAIN_COMMIT}\`"
+            echo "- Mesa nearest stable tag: \`mesa-${MESA_STABLE_VERSION}\`"
+            echo "- Provider: \`${AETURNIP_SELECTED_PROVIDER}\`"
+            echo "- Source repo: \`${AETURNIP_SELECTED_REPO}\`"
+            echo "- Source release: \`${AETURNIP_SELECTED_RELEASE_TAG}\`"
+            echo "- Source asset: \`${AETURNIP_SELECTED_ASSET_NAME}\`"
+            echo "- Payload mode: \`independent-turnip-zip\`"
+            echo "- Artifact: \`${AETURNIP_ARTIFACT_NAME}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Publish to GitHub Release
+        if: github.event_name != 'pull_request'
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.AEO_RELEASE_TOKEN }}
+          owner: ${{ env.GRAPHICS_RELEASE_OWNER }}
+          repo: ${{ env.GRAPHICS_RELEASE_REPO }}
+          tag: ${{ env.AETURNIP_RELEASE_TAG }}
+          name: ${{ env.AETURNIP_RELEASE_NAME }}
+          allowUpdates: true
+          prerelease: true
+          removeArtifacts: true
+          artifacts: ${{ env.AETURNIP_ARTIFACT_PATH }},${{ env.AETURNIP_SHA256_PATH }}
+          artifactErrorsFailBuild: true
+          bodyFile: ${{ env.AETURNIP_RELEASE_NOTES }}
+
+  build-aeopengl-arm64:
+    name: Build AeOpenGLDriver ARM64 independent ZIP overlay
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      AEOPENGL_RELEASE_NAME: AeOpenGLDriver ARM64 Latest
+      AEOPENGL_RELEASE_TAG: aeopengl-driver-arm64-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends zip zstd git
+
+      - name: Build AeOpenGLDriver ARM64 ZIP overlay
+        run: |
+          bash ci/graphics/build-aeopengl-zip.sh \
+            "${RUNNER_TEMP}/aeopengl-out" \
+            "${RUNNER_TEMP}/aeopengl-work"
+          while IFS='=' read -r key value; do
+            printf '%s=%s\n' "${key}" "${value}" >> "${GITHUB_ENV}"
+          done < "${RUNNER_TEMP}/aeopengl-out/aeopengl-metadata.env"
+
+      - name: Upload AeOpenGL artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: aeopengl-driver-arm64
+          path: |
+            ${{ env.AEOPENGL_ARTIFACT_PATH }}
+            ${{ env.AEOPENGL_SHA256_PATH }}
+            ${{ env.AEOPENGL_RELEASE_NOTES }}
+          compression-level: 0
+          retention-days: 7
+
+      - name: Publish summary
+        run: |
+          {
+            echo "## AeOpenGLDriver"
+            echo
+            echo "- Mesa exact main ref: \`${MESA_MAIN_COMMIT}\`"
+            echo "- Mesa nearest stable tag: \`mesa-${MESA_STABLE_VERSION}\`"
+            echo "- Artifact: \`${AEOPENGL_ARTIFACT_NAME}\`"
+            echo "- Payload source ref: \`${AEOPENGL_PAYLOAD_RESOLVED_REF}\`"
+            echo "- Payload mode: \`external-pinned-overlay\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Publish to GitHub Release
+        if: github.event_name != 'pull_request'
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.AEO_RELEASE_TOKEN }}
+          owner: ${{ env.GRAPHICS_RELEASE_OWNER }}
+          repo: ${{ env.GRAPHICS_RELEASE_REPO }}
+          tag: ${{ env.AEOPENGL_RELEASE_TAG }}
+          name: ${{ env.AEOPENGL_RELEASE_NAME }}
+          allowUpdates: true
+          prerelease: true
+          removeArtifacts: true
+          artifacts: ${{ env.AEOPENGL_ARTIFACT_PATH }},${{ env.AEOPENGL_SHA256_PATH }}
+          artifactErrorsFailBuild: true
+          bodyFile: ${{ env.AEOPENGL_RELEASE_NOTES }}
+
+  build-dgvoodoo-latest:
+    name: Build dgVoodoo latest ZIP mirror
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      DGVOODOO_RELEASE_NAME: dgVoodoo Latest
+      DGVOODOO_RELEASE_TAG: dgvoodoo-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends curl jq unzip
+
+      - name: Build dgVoodoo latest ZIP mirror
+        run: |
+          bash ci/graphics/build-dgvoodoo-zip.sh \
+            "${RUNNER_TEMP}/dgvoodoo-out" \
+            "${RUNNER_TEMP}/dgvoodoo-work"
+          while IFS='=' read -r key value; do
+            printf '%s=%s\n' "${key}" "${value}" >> "${GITHUB_ENV}"
+          done < "${RUNNER_TEMP}/dgvoodoo-out/dgvoodoo-metadata.env"
+
+      - name: Upload dgVoodoo artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: dgvoodoo-latest
+          path: |
+            ${{ env.DGVOODOO_ARTIFACT_PATH }}
+            ${{ env.DGVOODOO_SHA256_PATH }}
+            ${{ env.DGVOODOO_RELEASE_NOTES }}
+          compression-level: 0
+          retention-days: 7
+
+      - name: Publish summary
+        run: |
+          {
+            echo "## dgVoodoo"
+            echo
+            echo "- Upstream tag: \`${DGVOODOO_UPSTREAM_TAG}\`"
+            echo "- Upstream asset: \`${DGVOODOO_UPSTREAM_ASSET}\`"
+            echo "- Artifact: \`${DGVOODOO_ARTIFACT_NAME}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Publish to GitHub Release
+        if: github.event_name != 'pull_request'
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.AEO_RELEASE_TOKEN }}
+          owner: ${{ env.GRAPHICS_RELEASE_OWNER }}
+          repo: ${{ env.GRAPHICS_RELEASE_REPO }}
+          tag: ${{ env.DGVOODOO_RELEASE_TAG }}
+          name: ${{ env.DGVOODOO_RELEASE_NAME }}
+          allowUpdates: true
+          prerelease: true
+          removeArtifacts: true
+          artifacts: ${{ env.DGVOODOO_ARTIFACT_PATH }},${{ env.DGVOODOO_SHA256_PATH }}
+          artifactErrorsFailBuild: true
+          bodyFile: ${{ env.DGVOODOO_RELEASE_NOTES }}
+
+  build-aedxvk-gplasync:
+    name: Build AeDXVK GPLAsync source WCP
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - flavor: generic
+            version_name: 2.7.1-1-gplasync
+            release_name: AeDXVK GPLAsync Latest
+            release_tag: dxvk-gplasync-latest
+            artifact_name: dxvk-gplasync.wcp
+            sha_name: SHA256SUMS-dxvk-gplasync.txt
+            notes_name: RELEASE_NOTES-dxvk-gplasync.md
+          - flavor: arm64ec
+            version_name: 2.7.1-1-gplasync-arm64ec
+            release_name: AeDXVK GPLAsync ARM64EC Latest
+            release_tag: dxvk-gplasync-arm64ec-latest
+            artifact_name: dxvk-gplasync-arm64ec.wcp
+            sha_name: SHA256SUMS-dxvk-gplasync-arm64ec.txt
+            notes_name: RELEASE_NOTES-dxvk-gplasync-arm64ec.md
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            git python3 zip tar xz-utils meson ninja-build \
+            mingw-w64 g++-mingw-w64-x86-64 g++-mingw-w64-i686 \
+            glslang-tools spirv-tools
+
+      - name: Build AeDXVK GPLAsync source WCP
+        run: |
+          AEDXVK_VERSION_NAME="${{ matrix.version_name }}" \
+          AEDXVK_FLAVOR="${{ matrix.flavor }}" \
+          AEDXVK_RELEASE_TAG="${{ matrix.release_tag }}" \
+          AEDXVK_ARTIFACT_NAME="${{ matrix.artifact_name }}" \
+          AEDXVK_SHA256_ARTIFACT_NAME="${{ matrix.sha_name }}" \
+          AEDXVK_RELEASE_NOTES_NAME="${{ matrix.notes_name }}" \
+          AEDXVK_PROFILE_NAME="AeDXVK GPLAsync" \
+          AEDXVK_PROFILE_DESCRIPTION="AeDXVK GPLAsync source-built package (${{ matrix.flavor }})" \
+          bash ci/graphics/build-aedxvk-gplasync-wcp.sh \
+            "${RUNNER_TEMP}/aedxvk-out" \
+            "${RUNNER_TEMP}/aedxvk-work"
+          while IFS='=' read -r key value; do
+            printf '%s=%s\n' "${key}" "${value}" >> "${GITHUB_ENV}"
+          done < "${RUNNER_TEMP}/aedxvk-out/aedxvk-metadata.env"
+
+      - name: Upload AeDXVK artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: aedxvk-${{ matrix.flavor }}
+          path: |
+            ${{ env.AEDXVK_ARTIFACT_PATH }}
+            ${{ env.AEDXVK_SHA256_PATH }}
+            ${{ env.AEDXVK_RELEASE_NOTES }}
+          compression-level: 0
+          retention-days: 7
+
+      - name: Publish summary
+        run: |
+          {
+            echo "## AeDXVK GPLAsync (${{ matrix.flavor }})"
+            echo
+            echo "- Exact source commit: \`${AEDXVK_RESOLVED_COMMIT}\`"
+            echo "- Nearest stable tag: \`${AEDXVK_RESOLVED_TAG}\`"
+            echo "- Artifact: \`${AEDXVK_ARTIFACT_NAME}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Publish to GitHub Release
+        if: github.event_name != 'pull_request'
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.AEO_RELEASE_TOKEN }}
+          owner: ${{ env.GRAPHICS_RELEASE_OWNER }}
+          repo: ${{ env.GRAPHICS_RELEASE_REPO }}
+          tag: ${{ matrix.release_tag }}
+          name: ${{ matrix.release_name }}
+          allowUpdates: true
+          prerelease: true
+          removeArtifacts: true
+          artifacts: ${{ env.AEDXVK_ARTIFACT_PATH }},${{ env.AEDXVK_SHA256_PATH }}
+          artifactErrorsFailBuild: true
+          bodyFile: ${{ env.AEDXVK_RELEASE_NOTES }}
+
+  build-aevkd3d-proton:
+    name: Build AeVKD3D-Proton source WCP
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - flavor: generic
+            version_name: 3.0b
+            release_name: AeVKD3D-Proton Latest
+            release_tag: vkd3d-proton-latest
+            artifact_name: vkd3d-proton.wcp
+            sha_name: SHA256SUMS-vkd3d-proton.txt
+            notes_name: RELEASE_NOTES-vkd3d-proton.md
+          - flavor: arm64ec
+            version_name: 3.0b-arm64ec
+            release_name: AeVKD3D-Proton ARM64EC Latest
+            release_tag: vkd3d-proton-arm64ec-latest
+            artifact_name: vkd3d-proton-arm64ec.wcp
+            sha_name: SHA256SUMS-vkd3d-proton-arm64ec.txt
+            notes_name: RELEASE_NOTES-vkd3d-proton-arm64ec.md
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            git python3 zip tar xz-utils meson ninja-build \
+            mingw-w64 g++-mingw-w64-x86-64 g++-mingw-w64-i686
+
+      - name: Build AeVKD3D-Proton source WCP
+        run: |
+          AEVKD3D_VERSION_NAME="${{ matrix.version_name }}" \
+          AEVKD3D_FLAVOR="${{ matrix.flavor }}" \
+          AEVKD3D_RELEASE_TAG="${{ matrix.release_tag }}" \
+          AEVKD3D_ARTIFACT_NAME="${{ matrix.artifact_name }}" \
+          AEVKD3D_SHA256_ARTIFACT_NAME="${{ matrix.sha_name }}" \
+          AEVKD3D_RELEASE_NOTES_NAME="${{ matrix.notes_name }}" \
+          AEVKD3D_PROFILE_NAME="AeVKD3D-Proton" \
+          AEVKD3D_PROFILE_DESCRIPTION="AeVKD3D-Proton source-built package (${{ matrix.flavor }})" \
+          bash ci/graphics/build-aevkd3d-proton-wcp.sh \
+            "${RUNNER_TEMP}/aevkd3d-out" \
+            "${RUNNER_TEMP}/aevkd3d-work"
+          while IFS='=' read -r key value; do
+            printf '%s=%s\n' "${key}" "${value}" >> "${GITHUB_ENV}"
+          done < "${RUNNER_TEMP}/aevkd3d-out/aevkd3d-metadata.env"
+
+      - name: Upload AeVKD3D artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: aevkd3d-${{ matrix.flavor }}
+          path: |
+            ${{ env.AEVKD3D_ARTIFACT_PATH }}
+            ${{ env.AEVKD3D_SHA256_PATH }}
+            ${{ env.AEVKD3D_RELEASE_NOTES }}
+          compression-level: 0
+          retention-days: 7
+
+      - name: Publish summary
+        run: |
+          {
+            echo "## AeVKD3D-Proton (${{ matrix.flavor }})"
+            echo
+            echo "- Exact source commit: \`${AEVKD3D_RESOLVED_COMMIT}\`"
+            echo "- Nearest 3.x tag: \`${AEVKD3D_RESOLVED_TAG}\`"
+            echo "- Artifact: \`${AEVKD3D_ARTIFACT_NAME}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Publish to GitHub Release
+        if: github.event_name != 'pull_request'
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.AEO_RELEASE_TOKEN }}
+          owner: ${{ env.GRAPHICS_RELEASE_OWNER }}
+          repo: ${{ env.GRAPHICS_RELEASE_REPO }}
+          tag: ${{ matrix.release_tag }}
+          name: ${{ matrix.release_name }}
+          allowUpdates: true
+          prerelease: true
+          removeArtifacts: true
+          artifacts: ${{ env.AEVKD3D_ARTIFACT_PATH }},${{ env.AEVKD3D_SHA256_PATH }}
+          artifactErrorsFailBuild: true
+          bodyFile: ${{ env.AEVKD3D_RELEASE_NOTES }}

@@ -1,0 +1,43 @@
+{
+  "generatedAt": "2026-03-01",
+  "mesa": {
+    "mainCommit": "1e1d8931c7de6316b2c7b4c2c20e370079c23402",
+    "latestStable": "26.0.1"
+  },
+  "dxvk": {
+    "upstreamLatest": "v2.7.1",
+    "gplasyncHead": "1f900f20857b676d314e78d4f352f700c00b4a8b",
+    "wcphubLatest": {
+      "verName": "2.7.1",
+      "remoteUrl": "https://github.com/Arihany/WinlatorWCPHub/releases/download/DXVK/dxvk-2.7.1.wcp"
+    },
+    "wcphubLatestArm64ec": {
+      "verName": "2.7.1-arm64ec",
+      "remoteUrl": "https://github.com/Arihany/WinlatorWCPHub/releases/download/DXVK-ARM64EC/dxvk-arm64ec-2.7.1.wcp"
+    },
+    "wcphubLatestGplAsync": {
+      "verName": "2.7.1-1-gplasync",
+      "remoteUrl": "https://github.com/Arihany/WinlatorWCPHub/releases/download/DXVK-GPLASYNC/dxvk-gplasync-2.7.1-1.wcp"
+    },
+    "wcphubLatestGplAsyncArm64ec": {
+      "verName": "2.7.1-1-gplasync-arm64ec",
+      "remoteUrl": "https://github.com/Arihany/WinlatorWCPHub/releases/download/DXVK-GPLASYNC-ARM64EC/dxvk-gplasync-arm64ec-2.7.1-1.wcp"
+    }
+  },
+  "vkd3dProton": {
+    "upstreamLatestStable": "v3.0",
+    "upstreamLatestAny": "v3.0b",
+    "upstreamHead": "f7fcd3b5a4bf3fb5e3b472350ce68a8aea017677",
+    "wcphubLatest": {
+      "verName": "3.0b",
+      "remoteUrl": "https://github.com/Arihany/WinlatorWCPHub/releases/download/VKD3D-PROTON/vkd3d-proton-3.0b.wcp"
+    },
+    "wcphubLatestArm64ec": {
+      "verName": "3.0b-arm64ec",
+      "remoteUrl": "https://github.com/Arihany/WinlatorWCPHub/releases/download/VKD3D-PROTON-ARM64EC/vkd3d-proton-arm64ec-3.0b.wcp"
+    }
+  },
+  "dgVoodoo": {
+    "upstreamLatest": "v2.86.5"
+  }
+}

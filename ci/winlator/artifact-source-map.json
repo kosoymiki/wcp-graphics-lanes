@@ -1,0 +1,72 @@
+{
+  "version": 2,
+  "updatedAt": "2026-03-04",
+  "artifacts": {
+    "freewine11": {
+      "kind": "wcp",
+      "description": "FreeWine 11 ARM64EC rolling latest",
+      "remoteUrl": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/freewine11-arm64ec-latest/freewine11-arm64ec.wcp",
+      "sha256Url": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/freewine11-arm64ec-latest/SHA256SUMS-freewine11-arm64ec.txt"
+    },
+    "wine11": {
+      "kind": "wcp",
+      "description": "Compatibility alias for FreeWine 11 ARM64EC rolling latest",
+      "remoteUrl": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/freewine11-arm64ec-latest/freewine11-arm64ec.wcp",
+      "sha256Url": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/freewine11-arm64ec-latest/SHA256SUMS-freewine11-arm64ec.txt"
+    },
+    "vulkansdkarm64": {
+      "kind": "wcp",
+      "description": "Vulkan SDK ARM64 installable contents package",
+      "remoteUrl": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/vulkan-sdk-arm64-latest/vulkan-sdk-arm64.wcp",
+      "sha256Url": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/vulkan-sdk-arm64-latest/SHA256SUMS-vulkan-sdk-arm64.txt"
+    },
+    "vulkansdkx86_64": {
+      "kind": "wcp",
+      "description": "Vulkan SDK x86_64 installable contents package",
+      "remoteUrl": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/vulkan-sdk-x86_64-latest/vulkan-sdk-x86_64.wcp",
+      "sha256Url": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/vulkan-sdk-x86_64-latest/SHA256SUMS-vulkan-sdk-x86_64.txt"
+    },
+    "aedxvkgplasync": {
+      "kind": "wcp",
+      "description": "AeDXVK GPLAsync source-built WCP package (generic)",
+      "remoteUrl": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/dxvk-gplasync-latest/dxvk-gplasync.wcp",
+      "sha256Url": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/dxvk-gplasync-latest/SHA256SUMS-dxvk-gplasync.txt"
+    },
+    "aedxvkgplasyncarm64ec": {
+      "kind": "wcp",
+      "description": "AeDXVK GPLAsync source-built WCP package (ARM64EC compat)",
+      "remoteUrl": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/dxvk-gplasync-arm64ec-latest/dxvk-gplasync-arm64ec.wcp",
+      "sha256Url": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/dxvk-gplasync-arm64ec-latest/SHA256SUMS-dxvk-gplasync-arm64ec.txt"
+    },
+    "aevkd3dproton": {
+      "kind": "wcp",
+      "description": "AeVKD3D-Proton source-built WCP package (generic)",
+      "remoteUrl": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/vkd3d-proton-latest/vkd3d-proton.wcp",
+      "sha256Url": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/vkd3d-proton-latest/SHA256SUMS-vkd3d-proton.txt"
+    },
+    "aevkd3dprotonarm64ec": {
+      "kind": "wcp",
+      "description": "AeVKD3D-Proton source-built WCP package (ARM64EC compat)",
+      "remoteUrl": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/vkd3d-proton-arm64ec-latest/vkd3d-proton-arm64ec.wcp",
+      "sha256Url": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/vkd3d-proton-arm64ec-latest/SHA256SUMS-vkd3d-proton-arm64ec.txt"
+    },
+    "aeturniparm64": {
+      "kind": "zip",
+      "description": "AeTurnip ARM64 curated ZIP driver lane",
+      "remoteUrl": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/aeturnip-arm64-latest/aeturnip-arm64.zip",
+      "sha256Url": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/aeturnip-arm64-latest/SHA256SUMS-aeturnip-arm64.txt"
+    },
+    "dgvoodoolatest": {
+      "kind": "zip",
+      "description": "Latest upstream dgVoodoo ZIP mirrored as a Contents lane",
+      "remoteUrl": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/dgvoodoo-latest/dgvoodoo-latest.zip",
+      "sha256Url": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/dgvoodoo-latest/SHA256SUMS-dgvoodoo-latest.txt"
+    },
+    "aeopengldriverarm64": {
+      "kind": "zip",
+      "description": "AeOpenGLDriver ARM64 curated ZIP overlay lane",
+      "remoteUrl": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/aeopengl-driver-arm64-latest/aeopengl-driver-arm64.zip",
+      "sha256Url": "https://github.com/kosoymiki/wcp-graphics-lanes/releases/download/aeopengl-driver-arm64-latest/SHA256SUMS-aeopengl-driver-arm64.txt"
+    }
+  }
+}
