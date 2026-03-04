@@ -6,8 +6,8 @@ from pathlib import Path
 
 ALLOWED_CHANNELS = {"stable", "beta", "nightly"}
 ALLOWED_DELIVERY = {"remote", "embedded", ""}
-ALLOWED_TYPES = {"wine", "proton", "vulkansdk", "turnipdriver", "opengldriver", "dxvk", "vkd3d"}
-ALLOWED_INTERNAL_TYPES = {"wine", "proton", "protonge", "protonwine", "vulkansdk", "turnip", "freedreno", "dxvk", "vkd3d"}
+ALLOWED_TYPES = {"wine", "proton", "vulkansdk", "turnipdriver", "opengldriver", "dgvoodoo", "dxvk", "vkd3d"}
+ALLOWED_INTERNAL_TYPES = {"wine", "proton", "protonge", "protonwine", "vulkansdk", "turnip", "freedreno", "dgvoodoo", "dxvk", "vkd3d"}
 EXPECTED_TYPE_BY_INTERNAL = {
     "wine": "wine",
     "proton": "proton",
@@ -16,6 +16,7 @@ EXPECTED_TYPE_BY_INTERNAL = {
     "vulkansdk": "vulkansdk",
     "turnip": "turnipdriver",
     "freedreno": "opengldriver",
+    "dgvoodoo": "dgvoodoo",
     "dxvk": "dxvk",
     "vkd3d": "vkd3d",
 }
@@ -25,12 +26,14 @@ EXPECTED_DISPLAY_BY_TYPE = {
     "vulkansdk": "Vulkan SDK",
     "turnipdriver": "Turnip",
     "opengldriver": "OpenGL Driver",
+    "dgvoodoo": "dgVoodoo",
     "dxvk": "DXVK",
     "vkd3d": "VKD3D",
 }
 WINE_VERSION_RE = re.compile(r"^[0-9]+(?:\.[0-9]+)*(?:-[0-9]+(?:\.[0-9]+)*)?-(x86|x86_64|arm64ec)$")
 VULKAN_SDK_VERSION_RE = re.compile(r"^[0-9]+(?:\.[0-9]+)*-(arm64|x86_64)$")
 GRAPHICS_PROVIDER_VERSION_RE = re.compile(r"^(?:rolling|[0-9]+(?:\.[0-9]+)*)-arm64$")
+DGVOODOO_VERSION_RE = re.compile(r"^[0-9]+(?:\.[0-9]+)*(?:-(x86_64|arm64ec))?$")
 DXVK_VERSION_RE = re.compile(r"^[0-9]+(?:\.[0-9]+)*(?:-[0-9]+)?(?:-gplasync)?(?:-arm64ec)?$")
 VKD3D_VERSION_RE = re.compile(r"^[0-9]+(?:\.[0-9]+)*(?:[ab][0-9]*)?(?:-arm64ec)?$")
 RUNTIME_RELEASE_REPO = "kosoymiki/wcp-runtime-lanes"
@@ -43,21 +46,24 @@ EXPECTED_SOURCE_REPO_BY_INTERNAL = {
     "vulkansdk": RUNTIME_RELEASE_REPO,
     "turnip": GRAPHICS_RELEASE_REPO,
     "freedreno": GRAPHICS_RELEASE_REPO,
+    "dgvoodoo": RUNTIME_RELEASE_REPO,
     "dxvk": RUNTIME_RELEASE_REPO,
     "vkd3d": RUNTIME_RELEASE_REPO,
 }
-GRAPHICS_RUNTIME_INTERNAL_TYPES = {"turnip", "freedreno", "dxvk", "vkd3d"}
+GRAPHICS_RUNTIME_INTERNAL_TYPES = {"turnip", "freedreno", "dgvoodoo", "dxvk", "vkd3d"}
 GRAPHICS_PROVIDER_INTERNAL_TYPES = {"turnip", "freedreno"}
 GRAPHICS_TRANSLATION_INTERNAL_TYPES = {"dxvk", "vkd3d"}
 EXPECTED_RUNTIME_ROLE_BY_INTERNAL = {
     "turnip": "graphics-provider",
     "freedreno": "graphics-provider",
+    "dgvoodoo": "legacy-wrapper",
     "dxvk": "translation-layer",
     "vkd3d": "translation-layer",
 }
 EXPECTED_RUNTIME_LANE_PREFIX_BY_INTERNAL = {
     "turnip": "aeturnip",
     "freedreno": "aeopengl-driver",
+    "dgvoodoo": "dgvoodoo",
     "dxvk": "aedxvk-gplasync",
     "vkd3d": "aevkd3d-proton",
 }
@@ -200,6 +206,14 @@ def validate_graphics_runtime_contract(idx: int, item: dict, internal_type: str)
         provider_lane = str(runtime_contract.get("providerLane", "")).strip()
         if not provider_lane:
             fail(f"entry {idx} runtimeContract.providerLane is required for {internal_type}")
+    if internal_type == "dgvoodoo":
+        legacy_fallback = runtime_contract.get("legacyDxFallback")
+        if not isinstance(legacy_fallback, dict):
+            fail(f"entry {idx} runtimeContract.legacyDxFallback must be object for {internal_type}")
+        if str(legacy_fallback.get("engine", "")).strip().lower() != "dgvoodoo":
+            fail(f"entry {idx} runtimeContract.legacyDxFallback.engine must be dgvoodoo for {internal_type}")
+        if not is_string_list(legacy_fallback.get("targetApis")):
+            fail(f"entry {idx} runtimeContract.legacyDxFallback.targetApis must be non-empty string[]")
     if internal_type in GRAPHICS_TRANSLATION_INTERNAL_TYPES:
         provider_lanes = runtime_contract.get("providerLanes")
         if not is_string_list(provider_lanes):
@@ -240,6 +254,8 @@ def main() -> None:
     vulkan_sdk_arches = set()
     turnip_rows = 0
     freedreno_rows = 0
+    dgvoodoo_rows = 0
+    dgvoodoo_arches = set()
     dxvk_rows = 0
     vkd3d_rows = 0
     for idx, item in enumerate(data):
@@ -276,6 +292,8 @@ def main() -> None:
             version_ok = WINE_VERSION_RE.match(ver_name)
         elif type_key == "vulkansdk":
             version_ok = VULKAN_SDK_VERSION_RE.match(ver_name)
+        elif type_key == "dgvoodoo":
+            version_ok = DGVOODOO_VERSION_RE.match(ver_name)
         elif type_key == "dxvk":
             version_ok = DXVK_VERSION_RE.match(ver_name)
         elif type_key == "vkd3d":
@@ -291,6 +309,11 @@ def main() -> None:
             turnip_rows += 1
         elif type_key == "opengldriver":
             freedreno_rows += 1
+        elif type_key == "dgvoodoo":
+            dgvoodoo_rows += 1
+            arch_match = re.search(r"-(x86_64|arm64ec)$", ver_name)
+            if arch_match:
+                dgvoodoo_arches.add(arch_match.group(1))
         elif type_key == "dxvk":
             dxvk_rows += 1
         elif type_key == "vkd3d":
@@ -363,6 +386,11 @@ def main() -> None:
                 fail(f"entry {idx} freedreno row requires arm64 releaseTag: {release_tag}")
             if "arm64" not in artifact_name:
                 fail(f"entry {idx} freedreno row requires arm64 artifactName: {artifact_name}")
+        elif internal_type == "dgvoodoo":
+            if "dgvoodoo" not in release_tag:
+                fail(f"entry {idx} dgvoodoo internalType requires dgvoodoo* releaseTag: {release_tag}")
+            if "dgvoodoo" not in artifact_name:
+                fail(f"entry {idx} dgvoodoo internalType requires dgvoodoo* artifactName: {artifact_name}")
         elif internal_type == "dxvk":
             if "dxvk-gplasync" not in release_tag:
                 fail(f"entry {idx} dxvk internalType requires dxvk-gplasync* releaseTag: {release_tag}")
@@ -429,6 +457,10 @@ def main() -> None:
         fail(f"turnipdriver entries must appear once at most; got {turnip_rows}")
     if freedreno_rows not in {0, 1}:
         fail(f"opengldriver entries must appear once at most; got {freedreno_rows}")
+    if dgvoodoo_rows not in {0, 2}:
+        fail(f"dgvoodoo entries must appear exactly as x86_64+arm64ec pair; got {dgvoodoo_rows}")
+    if dgvoodoo_rows == 2 and dgvoodoo_arches != {"x86_64", "arm64ec"}:
+        fail(f"dgvoodoo entries must cover exactly x86_64 and arm64ec; got {sorted(dgvoodoo_arches)}")
     if dxvk_rows not in {0, 2}:
         fail(f"dxvk entries must appear exactly as generic+arm64ec pair; got {dxvk_rows}")
     if vkd3d_rows not in {0, 2}:

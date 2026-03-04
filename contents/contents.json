@@ -483,6 +483,90 @@
     }
   },
   {
+    "type": "DgVoodoo",
+    "internalType": "dgvoodoo",
+    "verName": "2.86.5-x86_64",
+    "verCode": 0,
+    "description": "Ae dgVoodoo wrapper package (x86_64 lane)",
+    "channel": "stable",
+    "delivery": "remote",
+    "displayCategory": "dgVoodoo",
+    "sourceRepo": "kosoymiki/wcp-runtime-lanes",
+    "sourceType": "github-release",
+    "sourceVersion": "rolling-latest",
+    "releaseTag": "dgvoodoo-latest",
+    "artifactName": "dgvoodoo.wcp",
+    "remoteUrl": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/dgvoodoo-latest/dgvoodoo.wcp",
+    "sha256Url": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/dgvoodoo-latest/SHA256SUMS-dgvoodoo.txt",
+    "runtimeContract": {
+      "schemaVersion": 1,
+      "lane": "dgvoodoo-x86_64",
+      "role": "legacy-wrapper",
+      "freewineLane": "freewine11-arm64ec",
+      "translationLayers": ["wined3d", "dxvk", "vkd3d-proton"],
+      "legacyDxFallback": {
+        "engine": "dgvoodoo",
+        "targetApis": ["ddraw", "d3d1", "d3d2", "d3d3", "d3d5", "d3d6", "d3d7", "glide"],
+        "activationHint": "legacy-wrapper-selected"
+      }
+    },
+    "forensicContract": {
+      "schemaVersion": 1,
+      "issueBundleKeys": [
+        "graphics-runtime-matrix.json",
+        "runtime-mismatch-matrix.json",
+        "runtime-conflict-contour.json"
+      ],
+      "liveDiagnosticsTopics": [
+        "RUNTIME_GRAPHICS_SUITABILITY",
+        "RUNTIME_DX_ROUTE_POLICY",
+        "RUNTIME_UPSCALE_RUNTIME_MATRIX"
+      ]
+    }
+  },
+  {
+    "type": "DgVoodoo",
+    "internalType": "dgvoodoo",
+    "verName": "2.86.5-arm64ec",
+    "verCode": 1,
+    "description": "Ae dgVoodoo wrapper package (arm64ec lane)",
+    "channel": "stable",
+    "delivery": "remote",
+    "displayCategory": "dgVoodoo",
+    "sourceRepo": "kosoymiki/wcp-runtime-lanes",
+    "sourceType": "github-release",
+    "sourceVersion": "rolling-latest",
+    "releaseTag": "dgvoodoo-latest",
+    "artifactName": "dgvoodoo.wcp",
+    "remoteUrl": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/dgvoodoo-latest/dgvoodoo.wcp",
+    "sha256Url": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/dgvoodoo-latest/SHA256SUMS-dgvoodoo.txt",
+    "runtimeContract": {
+      "schemaVersion": 1,
+      "lane": "dgvoodoo-arm64ec",
+      "role": "legacy-wrapper",
+      "freewineLane": "freewine11-arm64ec",
+      "translationLayers": ["wined3d", "dxvk", "vkd3d-proton"],
+      "legacyDxFallback": {
+        "engine": "dgvoodoo",
+        "targetApis": ["ddraw", "d3d1", "d3d2", "d3d3", "d3d5", "d3d6", "d3d7", "glide"],
+        "activationHint": "legacy-wrapper-selected"
+      }
+    },
+    "forensicContract": {
+      "schemaVersion": 1,
+      "issueBundleKeys": [
+        "graphics-runtime-matrix.json",
+        "runtime-mismatch-matrix.json",
+        "runtime-conflict-contour.json"
+      ],
+      "liveDiagnosticsTopics": [
+        "RUNTIME_GRAPHICS_SUITABILITY",
+        "RUNTIME_DX_ROUTE_POLICY",
+        "RUNTIME_UPSCALE_RUNTIME_MATRIX"
+      ]
+    }
+  },
+  {
     "type": "OpenGLDriver",
     "internalType": "freedreno",
     "verName": "rolling-arm64",

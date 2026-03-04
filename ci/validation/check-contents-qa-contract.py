@@ -15,8 +15,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Sequence
 
-ALLOWED_INTERNAL_TYPES = {"wine", "proton", "protonge", "protonwine", "vulkansdk", "turnip", "freedreno", "dxvk", "vkd3d"}
-ALLOWED_TYPES = {"Wine", "Proton", "VulkanSDK", "TurnipDriver", "OpenGLDriver", "DXVK", "VKD3D"}
+ALLOWED_INTERNAL_TYPES = {"wine", "proton", "protonge", "protonwine", "vulkansdk", "turnip", "freedreno", "dgvoodoo", "dxvk", "vkd3d"}
+ALLOWED_TYPES = {"Wine", "Proton", "VulkanSDK", "TurnipDriver", "OpenGLDriver", "DgVoodoo", "DXVK", "VKD3D"}
 EXPECTED_TYPE_BY_INTERNAL = {
     "wine": "Wine",
     "proton": "Proton",
@@ -25,6 +25,7 @@ EXPECTED_TYPE_BY_INTERNAL = {
     "vulkansdk": "VulkanSDK",
     "turnip": "TurnipDriver",
     "freedreno": "OpenGLDriver",
+    "dgvoodoo": "DgVoodoo",
     "dxvk": "DXVK",
     "vkd3d": "VKD3D",
 }
@@ -34,6 +35,7 @@ EXPECTED_DISPLAY_BY_TYPE = {
     "VulkanSDK": "Vulkan SDK",
     "TurnipDriver": "Turnip",
     "OpenGLDriver": "OpenGL Driver",
+    "DgVoodoo": "dgVoodoo",
     "DXVK": "DXVK",
     "VKD3D": "VKD3D",
 }
@@ -48,21 +50,24 @@ TARGET_RELEASE_REPO_BY_INTERNAL = {
     "vulkansdk": RUNTIME_RELEASE_REPO,
     "turnip": GRAPHICS_RELEASE_REPO,
     "freedreno": GRAPHICS_RELEASE_REPO,
+    "dgvoodoo": RUNTIME_RELEASE_REPO,
     "dxvk": RUNTIME_RELEASE_REPO,
     "vkd3d": RUNTIME_RELEASE_REPO,
 }
-GRAPHICS_RUNTIME_INTERNAL_TYPES = {"turnip", "freedreno", "dxvk", "vkd3d"}
+GRAPHICS_RUNTIME_INTERNAL_TYPES = {"turnip", "freedreno", "dgvoodoo", "dxvk", "vkd3d"}
 GRAPHICS_PROVIDER_INTERNAL_TYPES = {"turnip", "freedreno"}
 GRAPHICS_TRANSLATION_INTERNAL_TYPES = {"dxvk", "vkd3d"}
 EXPECTED_RUNTIME_ROLE_BY_INTERNAL = {
     "turnip": "graphics-provider",
     "freedreno": "graphics-provider",
+    "dgvoodoo": "legacy-wrapper",
     "dxvk": "translation-layer",
     "vkd3d": "translation-layer",
 }
 EXPECTED_RUNTIME_LANE_PREFIX_BY_INTERNAL = {
     "turnip": "aeturnip",
     "freedreno": "aeopengl-driver",
+    "dgvoodoo": "dgvoodoo",
     "dxvk": "aedxvk-gplasync",
     "vkd3d": "aevkd3d-proton",
 }
@@ -149,6 +154,7 @@ ARTIFACT_EXPECTED_ENTRIES = {
     "aevkd3dproton": {"internalType": "vkd3d", "artifactName": "vkd3d-proton.wcp"},
     "aevkd3dprotonarm64ec": {"internalType": "vkd3d", "artifactName": "vkd3d-proton-arm64ec.wcp"},
     "aeturniparm64": {"internalType": "turnip", "artifactName": "aeturnip-arm64.zip"},
+    "dgvoodoolatest": {"internalType": "dgvoodoo", "artifactName": "dgvoodoo.wcp"},
     "aeopengldriverarm64": {"internalType": "freedreno", "artifactName": "aeopengl-driver-arm64.zip"},
 }
 
@@ -377,6 +383,11 @@ def check_contents_schema(
                 fail(f"entry[{idx}] freedreno releaseTag must contain aeopengl-driver; got {release_tag}", failures)
             if "aeopengl-driver" not in artifact_name:
                 fail(f"entry[{idx}] freedreno artifactName must contain aeopengl-driver; got {artifact_name}", failures)
+        if internal_type == "dgvoodoo":
+            if "dgvoodoo" not in release_tag:
+                fail(f"entry[{idx}] dgvoodoo releaseTag must contain dgvoodoo; got {release_tag}", failures)
+            if "dgvoodoo" not in artifact_name:
+                fail(f"entry[{idx}] dgvoodoo artifactName must contain dgvoodoo; got {artifact_name}", failures)
         if internal_type == "dxvk":
             if "dxvk-gplasync" not in release_tag:
                 fail(f"entry[{idx}] dxvk releaseTag must contain dxvk-gplasync; got {release_tag}", failures)
@@ -456,6 +467,27 @@ def check_contents_schema(
                             f"entry[{idx}] runtimeContract.providerLane is required for {internal_type}",
                             failures,
                         )
+                if internal_type == "dgvoodoo":
+                    legacy_fallback = runtime_contract.get("legacyDxFallback")
+                    if not isinstance(legacy_fallback, dict):
+                        fail(
+                            f"entry[{idx}] runtimeContract.legacyDxFallback must be object for {internal_type}",
+                            failures,
+                        )
+                    else:
+                        engine = str(legacy_fallback.get("engine", "")).strip().lower()
+                        if engine != "dgvoodoo":
+                            fail(
+                                f"entry[{idx}] runtimeContract.legacyDxFallback.engine must be dgvoodoo; "
+                                f"got {engine}",
+                                failures,
+                            )
+                        if not is_non_empty_string_list(legacy_fallback.get("targetApis")):
+                            fail(
+                                f"entry[{idx}] runtimeContract.legacyDxFallback.targetApis "
+                                "must be non-empty string[]",
+                                failures,
+                            )
                 if internal_type in GRAPHICS_TRANSLATION_INTERNAL_TYPES:
                     provider_lanes = runtime_contract.get("providerLanes")
                     if not is_non_empty_string_list(provider_lanes):
@@ -513,6 +545,27 @@ def check_contents_schema(
                     )
 
         family_entries_by_internal.setdefault(internal_type, []).append(row)
+
+    dgvoodoo_entries = family_entries_by_internal.get("dgvoodoo", [])
+    if dgvoodoo_entries:
+        if len(dgvoodoo_entries) != 2:
+            fail(
+                f"dgvoodoo contents entries must be split into x86_64 + arm64ec lanes; got {len(dgvoodoo_entries)}",
+                failures,
+            )
+        else:
+            dgvoodoo_arches = set()
+            for row in dgvoodoo_entries:
+                ver_name = str(row.get("verName", "")).strip().lower()
+                if ver_name.endswith("-x86_64"):
+                    dgvoodoo_arches.add("x86_64")
+                elif ver_name.endswith("-arm64ec"):
+                    dgvoodoo_arches.add("arm64ec")
+            if dgvoodoo_arches != {"x86_64", "arm64ec"}:
+                fail(
+                    f"dgvoodoo verName lanes must cover exactly x86_64 and arm64ec; got {sorted(dgvoodoo_arches)}",
+                    failures,
+                )
 
     for artifact_key, expected in ARTIFACT_EXPECTED_ENTRIES.items():
         artifact = artifacts.get(artifact_key)
@@ -604,6 +657,27 @@ def check_contents_schema(
                             f"contents={entry_freewine} artifact-map={freewine_lane}",
                             failures,
                         )
+                if internal_type == "dgvoodoo":
+                    legacy_fallback = runtime_meta.get("legacyDxFallback")
+                    if not isinstance(legacy_fallback, dict):
+                        fail(
+                            f"artifact-source-map {artifact_key} runtimeContract.legacyDxFallback must be object",
+                            failures,
+                        )
+                    else:
+                        engine = str(legacy_fallback.get("engine", "")).strip().lower()
+                        if engine != "dgvoodoo":
+                            fail(
+                                f"artifact-source-map {artifact_key} runtimeContract.legacyDxFallback.engine "
+                                f"must be dgvoodoo; got {engine}",
+                                failures,
+                            )
+                        if not is_non_empty_string_list(legacy_fallback.get("targetApis")):
+                            fail(
+                                f"artifact-source-map {artifact_key} runtimeContract.legacyDxFallback.targetApis "
+                                "must be non-empty string[]",
+                                failures,
+                            )
                 if internal_type in GRAPHICS_TRANSLATION_INTERNAL_TYPES:
                     legacy_fallback = runtime_meta.get("legacyDxFallback")
                     if not isinstance(legacy_fallback, dict):

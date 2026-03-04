@@ -334,6 +334,27 @@
         "liveDiagnosticsTopics": ["RUNTIME_GRAPHICS_SUITABILITY", "RUNTIME_DX_ROUTE_POLICY", "RUNTIME_UPSCALE_RUNTIME_MATRIX"]
       }
     },
+    "dgvoodoolatest": {
+      "kind": "wcp",
+      "description": "Ae dgVoodoo wrapper WCP package",
+      "remoteUrl": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/dgvoodoo-latest/dgvoodoo.wcp",
+      "sha256Url": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/dgvoodoo-latest/SHA256SUMS-dgvoodoo.txt",
+      "runtimeContract": {
+        "lane": "dgvoodoo-x86_64",
+        "role": "legacy-wrapper",
+        "freewineLane": "freewine11-arm64ec",
+        "translationLayers": ["wined3d", "dxvk", "vkd3d-proton"],
+        "legacyDxFallback": {
+          "engine": "dgvoodoo",
+          "targetApis": ["ddraw", "d3d1", "d3d2", "d3d3", "d3d5", "d3d6", "d3d7", "glide"],
+          "activationHint": "legacy-wrapper-selected"
+        }
+      },
+      "forensic": {
+        "issueBundleKeys": ["graphics-runtime-matrix.json", "runtime-mismatch-matrix.json", "runtime-conflict-contour.json"],
+        "liveDiagnosticsTopics": ["RUNTIME_GRAPHICS_SUITABILITY", "RUNTIME_DX_ROUTE_POLICY", "RUNTIME_UPSCALE_RUNTIME_MATRIX"]
+      }
+    },
     "aeturniparm64": {
       "kind": "zip",
       "description": "AeTurnip ARM64 source-built ZIP driver lane",
