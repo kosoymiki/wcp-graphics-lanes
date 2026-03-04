@@ -170,6 +170,24 @@ EOF_PROPERTIES_H
 
 #endif
 EOF_LOG_H
+  if [[ ! -d "${include_root}/spirv-tools" ]]; then
+    if [[ -d /usr/include/spirv-tools ]]; then
+      cp -a /usr/include/spirv-tools "${include_root}/"
+    elif command -v curl >/dev/null 2>&1 && command -v tar >/dev/null 2>&1; then
+      local archive_path="${include_root}/.spirv-tools-main.tar.gz"
+      local unpack_dir="${include_root}/.spirv-tools-main"
+      rm -rf "${unpack_dir}" "${archive_path}"
+      if curl -fsSL "https://github.com/KhronosGroup/SPIRV-Tools/archive/refs/heads/main.tar.gz" -o "${archive_path}"; then
+        mkdir -p "${unpack_dir}"
+        if tar -xzf "${archive_path}" -C "${unpack_dir}" --strip-components=2 "SPIRV-Tools-main/include/spirv-tools"; then
+          if [[ -d "${unpack_dir}/spirv-tools" ]]; then
+            cp -a "${unpack_dir}/spirv-tools" "${include_root}/"
+          fi
+        fi
+      fi
+      rm -rf "${unpack_dir}" "${archive_path}"
+    fi
+  fi
   printf '%s' "${include_root}"
 }
 
