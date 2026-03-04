@@ -87,6 +87,50 @@ apply_mesa_patchset() {
   printf '%s' "${applied}"
 }
 
+disable_freedreno_libarchive_fallback() {
+  local source_dir="${1:?source dir required}"
+  local meson_file="${source_dir}/src/freedreno/meson.build"
+
+  if [[ ! -f "${meson_file}" ]]; then
+    return 0
+  fi
+
+  # libarchive is optional for freedreno tools. Fallback subproject pulls OpenSSL
+  # headers that are not part of Android NDK toolchains and breaks cross builds.
+  sed -i -E \
+    "s/dependency\\('libarchive',[[:space:]]*allow_fallback:[[:space:]]*true/dependency('libarchive', allow_fallback: false/" \
+    "${meson_file}"
+}
+
+prepare_android_cutils_trace_stub() {
+  local include_root="${1:?include root required}"
+  mkdir -p "${include_root}/cutils"
+  cat > "${include_root}/cutils/trace.h" <<'EOF_TRACE_H'
+#ifndef CUTILS_TRACE_H
+#define CUTILS_TRACE_H
+
+#include <stdint.h>
+
+#ifndef ATRACE_TAG_GRAPHICS
+#define ATRACE_TAG_GRAPHICS 0
+#endif
+
+static inline void atrace_init(void) {}
+static inline void atrace_begin(uint64_t tag, const char *name)
+{
+  (void)tag;
+  (void)name;
+}
+static inline void atrace_end(uint64_t tag)
+{
+  (void)tag;
+}
+
+#endif
+EOF_TRACE_H
+  printf '%s' "${include_root}"
+}
+
 lines_file_to_json_array() {
   local lines_path="${1:?lines file required}"
   python3 - <<'PY' "${lines_path}"
