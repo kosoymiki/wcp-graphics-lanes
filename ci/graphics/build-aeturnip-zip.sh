@@ -83,6 +83,7 @@ meson setup "${build_dir}" "${source_dir}" \
   -Dgles1=disabled \
   -Dgles2=disabled \
   -Dllvm=disabled \
+  -Dspirv-tools=disabled \
   -Dzstd=disabled \
   -Dshared-glapi=disabled
 

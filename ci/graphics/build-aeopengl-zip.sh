@@ -101,6 +101,7 @@ meson setup "${build_dir}" "${source_dir}" \
   -Dgallium-drivers=freedreno,softpipe,zink \
   -Dvulkan-drivers=freedreno \
   -Dfreedreno-kmds=kgsl \
+  -Dspirv-tools=disabled \
   -Dzstd=disabled \
   -Dshared-glapi=enabled
 
