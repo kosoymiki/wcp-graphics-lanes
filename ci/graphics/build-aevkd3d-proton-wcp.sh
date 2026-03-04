@@ -60,10 +60,10 @@ wcp_root="${WORK_DIR}/wcp-root"
 stage_dir="${wcp_root}/payload"
 mkdir -p "${build_dir}" "${stage_dir}/x64" "${stage_dir}/x86"
 
-git clone --depth 1 "${VKD3D_PROTON_GIT_URL}" "${src_dir}" >/dev/null 2>&1
+resolved_tag="$(resolve_latest_v3_tag)"
+git clone --depth 1 --branch "${resolved_tag}" "${VKD3D_PROTON_GIT_URL}" "${src_dir}" >/dev/null 2>&1
 resolved_commit="$(git -C "${src_dir}" rev-parse HEAD)"
 resolved_short="${resolved_commit:0:12}"
-resolved_tag="$(resolve_latest_v3_tag)"
 
 if [[ ! -x "${src_dir}/package-release.sh" ]]; then
   printf '[aevkd3d][error] package-release.sh missing in source checkout\n' >&2

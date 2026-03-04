@@ -63,15 +63,25 @@ wcp_root="${WORK_DIR}/wcp-root"
 stage_dir="${wcp_root}/payload"
 mkdir -p "${build_dir}" "${stage_dir}/x64" "${stage_dir}/x32"
 
-git clone --depth 1 "${DXVK_GPLASYNC_GIT_URL}" "${src_dir}" >/dev/null 2>&1
-resolved_commit="$(git -C "${src_dir}" rev-parse HEAD)"
-resolved_short="${resolved_commit:0:12}"
 resolved_tag="$(resolve_latest_tag "${DXVK_UPSTREAM_GIT_URL}" 'refs/tags/v*')"
+selected_repo="${DXVK_GPLASYNC_GIT_URL}"
+
+git clone --depth 1 "${DXVK_GPLASYNC_GIT_URL}" "${src_dir}" >/dev/null 2>&1
 
 if [[ ! -x "${src_dir}/package-release.sh" ]]; then
-  printf '[aedxvk][error] package-release.sh missing in source checkout\n' >&2
+  printf '[aedxvk][warn] package-release.sh missing in GPLAsync checkout, falling back to upstream tag %s\n' "${resolved_tag}" >&2
+  rm -rf "${src_dir}"
+  git clone --depth 1 --branch "${resolved_tag}" "${DXVK_UPSTREAM_GIT_URL}" "${src_dir}" >/dev/null 2>&1
+  selected_repo="${DXVK_UPSTREAM_GIT_URL}"
+fi
+
+if [[ ! -x "${src_dir}/package-release.sh" ]]; then
+  printf '[aedxvk][error] package-release.sh missing in selected source checkout\n' >&2
   exit 1
 fi
+
+resolved_commit="$(git -C "${src_dir}" rev-parse HEAD)"
+resolved_short="${resolved_commit:0:12}"
 
 (cd "${src_dir}" && ./package-release.sh "${AEDXVK_VERSION_NAME}" "${build_dir}" --no-package >/dev/null)
 
@@ -109,7 +119,7 @@ cat > "${wcp_root}/dxvk-source.json" <<EOF_SOURCE
   "lane": "AeDXVKGPLAsync",
   "packageVersion": "$(json_escape "${AEDXVK_VERSION_NAME}")",
   "packageFlavor": "$(json_escape "${AEDXVK_FLAVOR}")",
-  "upstreamRepo": "$(json_escape "${DXVK_GPLASYNC_GIT_URL}")",
+  "upstreamRepo": "$(json_escape "${selected_repo}")",
   "resolvedSourceCommit": "$(json_escape "${resolved_commit}")",
   "resolvedSourceShort": "$(json_escape "${resolved_short}")",
   "resolvedUpstreamStableTag": "$(json_escape "${resolved_tag}")",
@@ -167,14 +177,14 @@ AeDXVK GPLAsync source-built package
 
 RU:
 - Формат: WCP, ставится через Winlator Contents
-- Источник: ${DXVK_GPLASYNC_GIT_URL}
+- Источник: ${selected_repo}
 - Exact commit: ${resolved_commit}
 - Ближайший upstream stable tag: ${resolved_tag}
 - Runtime target: ${AEDXVK_FLAVOR}
 
 EN:
 - Format: WCP, installable via Winlator Contents
-- Source: ${DXVK_GPLASYNC_GIT_URL}
+- Source: ${selected_repo}
 - Exact commit: ${resolved_commit}
 - Nearest upstream stable tag: ${resolved_tag}
 - Runtime target: ${AEDXVK_FLAVOR}

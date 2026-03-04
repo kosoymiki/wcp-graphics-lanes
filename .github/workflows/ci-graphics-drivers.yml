@@ -22,6 +22,7 @@ permissions:
   contents: write
 
 env:
+  AEO_UPLOAD_ARTIFACTS: "0"
   GRAPHICS_RELEASE_OWNER: kosoymiki
   GRAPHICS_RELEASE_REPO: wcp-graphics-lanes
   AETURNIP_SOURCE_REPO: kosoymiki/wcp-graphics-lanes
@@ -69,6 +70,7 @@ jobs:
           done < "${RUNNER_TEMP}/aeturnip-out/aeturnip-metadata.env"
 
       - name: Upload AeTurnip artifact
+        if: env.AEO_UPLOAD_ARTIFACTS == '1'
         uses: actions/upload-artifact@v6
         with:
           name: aeturnip-arm64
@@ -137,6 +139,7 @@ jobs:
           done < "${RUNNER_TEMP}/aeopengl-out/aeopengl-metadata.env"
 
       - name: Upload AeOpenGL artifact
+        if: env.AEO_UPLOAD_ARTIFACTS == '1'
         uses: actions/upload-artifact@v6
         with:
           name: aeopengl-driver-arm64
@@ -202,6 +205,7 @@ jobs:
           done < "${RUNNER_TEMP}/dgvoodoo-out/dgvoodoo-metadata.env"
 
       - name: Upload dgVoodoo artifact
+        if: env.AEO_UPLOAD_ARTIFACTS == '1'
         uses: actions/upload-artifact@v6
         with:
           name: dgvoodoo-latest
@@ -291,6 +295,7 @@ jobs:
           done < "${RUNNER_TEMP}/aedxvk-out/aedxvk-metadata.env"
 
       - name: Upload AeDXVK artifact
+        if: env.AEO_UPLOAD_ARTIFACTS == '1'
         uses: actions/upload-artifact@v6
         with:
           name: aedxvk-${{ matrix.flavor }}
@@ -379,6 +384,7 @@ jobs:
           done < "${RUNNER_TEMP}/aevkd3d-out/aevkd3d-metadata.env"
 
       - name: Upload AeVKD3D artifact
+        if: env.AEO_UPLOAD_ARTIFACTS == '1'
         uses: actions/upload-artifact@v6
         with:
           name: aevkd3d-${{ matrix.flavor }}
