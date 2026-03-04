@@ -117,6 +117,14 @@ if [[ -z "${package_root}" || ! -d "${package_root}" ]]; then
   exit 1
 fi
 
+# DXVK upstream can omit d3d10_1.dll in release bundles.
+# Keep runtime contract stable by aliasing to d3d10core.dll when missing.
+for arch in x64 x32; do
+  if [[ ! -f "${package_root}/${arch}/d3d10_1.dll" && -f "${package_root}/${arch}/d3d10core.dll" ]]; then
+    cp -a "${package_root}/${arch}/d3d10core.dll" "${package_root}/${arch}/d3d10_1.dll"
+  fi
+done
+
 required_dlls=(d3d8.dll d3d9.dll d3d10_1.dll d3d10core.dll d3d11.dll dxgi.dll)
 for dll in "${required_dlls[@]}"; do
   [[ -f "${package_root}/x64/${dll}" ]] || { printf '[aedxvk][error] missing x64/%s\n' "${dll}" >&2; exit 1; }

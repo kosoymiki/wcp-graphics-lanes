@@ -104,7 +104,23 @@ disable_freedreno_libarchive_fallback() {
 
 prepare_android_cutils_trace_stub() {
   local include_root="${1:?include root required}"
-  mkdir -p "${include_root}/cutils" "${include_root}/log"
+  mkdir -p "${include_root}/android" "${include_root}/cutils" "${include_root}/log"
+  cat > "${include_root}/android/native_handle.h" <<'EOF_ANDROID_NATIVE_HANDLE_H'
+#ifndef ANDROID_NATIVE_HANDLE_H
+#define ANDROID_NATIVE_HANDLE_H
+
+#include <stddef.h>
+
+typedef struct native_handle
+{
+  int version;
+  int numFds;
+  int numInts;
+  int data[];
+} native_handle_t;
+
+#endif
+EOF_ANDROID_NATIVE_HANDLE_H
   cat > "${include_root}/cutils/native_handle.h" <<'EOF_NATIVE_HANDLE_H'
 #ifndef CUTILS_NATIVE_HANDLE_H
 #define CUTILS_NATIVE_HANDLE_H
