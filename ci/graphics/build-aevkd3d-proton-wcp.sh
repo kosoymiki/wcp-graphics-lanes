@@ -81,6 +81,12 @@ git_clone_retry --depth 1 --branch "${resolved_tag}" --recursive --shallow-submo
 resolved_commit="$(git -C "${src_dir}" rev-parse HEAD)"
 resolved_short="${resolved_commit:0:12}"
 
+git -C "${src_dir}" submodule sync --recursive
+if ! git -C "${src_dir}" submodule update --init --recursive --depth 1; then
+  printf '[aevkd3d][warn] shallow submodule update failed, retrying full submodule fetch\n' >&2
+  git -C "${src_dir}" submodule update --init --recursive
+fi
+
 if [[ ! -x "${src_dir}/package-release.sh" ]]; then
   printf '[aevkd3d][error] package-release.sh missing in source checkout\n' >&2
   exit 1

@@ -96,6 +96,12 @@ if [[ ! -x "${src_dir}/package-release.sh" ]]; then
   exit 1
 fi
 
+git -C "${src_dir}" submodule sync --recursive
+if ! git -C "${src_dir}" submodule update --init --recursive --depth 1; then
+  printf '[aedxvk][warn] shallow submodule update failed, retrying full submodule fetch\n' >&2
+  git -C "${src_dir}" submodule update --init --recursive
+fi
+
 resolved_commit="$(git -C "${src_dir}" rev-parse HEAD)"
 resolved_short="${resolved_commit:0:12}"
 
