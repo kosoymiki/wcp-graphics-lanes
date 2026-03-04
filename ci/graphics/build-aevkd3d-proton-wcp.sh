@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eEuo pipefail
 
 OUT_DIR="${1:-$PWD/out}"
 WORK_DIR="${2:-/tmp/aevkd3d-wcp-work}"
@@ -17,6 +17,22 @@ WORK_DIR="${2:-/tmp/aevkd3d-wcp-work}"
 : "${AEVKD3D_RELEASE_NOTES_NAME:=RELEASE_NOTES-vkd3d-proton.md}"
 : "${AEVKD3D_PROFILE_NAME:=AeVKD3D-Proton}"
 : "${AEVKD3D_PROFILE_DESCRIPTION:=AeVKD3D-Proton source-built package}"
+
+trap 'ec=$?; printf "[aevkd3d][error] command failed (exit=%s) at line %s: %s\n" "${ec}" "${LINENO}" "${BASH_COMMAND}" >&2' ERR
+
+git_clone_retry() {
+  local attempt
+  for attempt in 1 2 3; do
+    if git clone "$@"; then
+      return 0
+    fi
+    if [[ "${attempt}" -lt 3 ]]; then
+      printf '[aevkd3d][warn] git clone attempt %s/3 failed, retrying...\n' "${attempt}" >&2
+      sleep $((attempt * 3))
+    fi
+  done
+  return 1
+}
 
 json_escape() {
   local s="${1-}"
@@ -61,7 +77,7 @@ stage_dir="${wcp_root}/payload"
 mkdir -p "${build_dir}" "${stage_dir}/x64" "${stage_dir}/x86"
 
 resolved_tag="$(resolve_latest_v3_tag)"
-git clone --depth 1 --branch "${resolved_tag}" "${VKD3D_PROTON_GIT_URL}" "${src_dir}" >/dev/null 2>&1
+git_clone_retry --depth 1 --branch "${resolved_tag}" "${VKD3D_PROTON_GIT_URL}" "${src_dir}"
 resolved_commit="$(git -C "${src_dir}" rev-parse HEAD)"
 resolved_short="${resolved_commit:0:12}"
 
@@ -70,7 +86,7 @@ if [[ ! -x "${src_dir}/package-release.sh" ]]; then
   exit 1
 fi
 
-(cd "${src_dir}" && ./package-release.sh "${AEVKD3D_VERSION_NAME}" "${build_dir}" --no-package >/dev/null)
+(cd "${src_dir}" && ./package-release.sh "${AEVKD3D_VERSION_NAME}" "${build_dir}" --no-package)
 
 package_root="$(find "${build_dir}" -mindepth 1 -maxdepth 1 -type d -name 'vkd3d-proton-*' | LC_ALL=C sort | head -n 1)"
 if [[ -z "${package_root}" || ! -d "${package_root}" ]]; then

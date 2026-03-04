@@ -100,7 +100,7 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: ncipollo/release-action@v1
         with:
-          token: ${{ secrets.AEO_RELEASE_TOKEN }}
+          token: ${{ secrets.AEO_RELEASE_TOKEN || github.token }}
           owner: ${{ env.GRAPHICS_RELEASE_OWNER }}
           repo: ${{ env.GRAPHICS_RELEASE_REPO }}
           tag: ${{ env.AETURNIP_RELEASE_TAG }}
@@ -166,7 +166,7 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: ncipollo/release-action@v1
         with:
-          token: ${{ secrets.AEO_RELEASE_TOKEN }}
+          token: ${{ secrets.AEO_RELEASE_TOKEN || github.token }}
           owner: ${{ env.GRAPHICS_RELEASE_OWNER }}
           repo: ${{ env.GRAPHICS_RELEASE_REPO }}
           tag: ${{ env.AEOPENGL_RELEASE_TAG }}
@@ -230,7 +230,7 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: ncipollo/release-action@v1
         with:
-          token: ${{ secrets.AEO_RELEASE_TOKEN }}
+          token: ${{ secrets.AEO_RELEASE_TOKEN || github.token }}
           owner: ${{ env.GRAPHICS_RELEASE_OWNER }}
           repo: ${{ env.GRAPHICS_RELEASE_REPO }}
           tag: ${{ env.DGVOODOO_RELEASE_TAG }}
@@ -320,7 +320,7 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: ncipollo/release-action@v1
         with:
-          token: ${{ secrets.AEO_RELEASE_TOKEN }}
+          token: ${{ secrets.AEO_RELEASE_TOKEN || github.token }}
           owner: ${{ env.GRAPHICS_RELEASE_OWNER }}
           repo: ${{ env.GRAPHICS_RELEASE_REPO }}
           tag: ${{ matrix.release_tag }}
@@ -409,7 +409,7 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: ncipollo/release-action@v1
         with:
-          token: ${{ secrets.AEO_RELEASE_TOKEN }}
+          token: ${{ secrets.AEO_RELEASE_TOKEN || github.token }}
           owner: ${{ env.GRAPHICS_RELEASE_OWNER }}
           repo: ${{ env.GRAPHICS_RELEASE_REPO }}
           tag: ${{ matrix.release_tag }}
