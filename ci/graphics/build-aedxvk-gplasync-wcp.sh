@@ -82,12 +82,12 @@ mkdir -p "${build_dir}" "${stage_dir}/x64" "${stage_dir}/x32"
 resolved_tag="$(resolve_latest_tag "${DXVK_UPSTREAM_GIT_URL}" 'refs/tags/v*')"
 selected_repo="${DXVK_GPLASYNC_GIT_URL}"
 
-git_clone_retry --depth 1 "${DXVK_GPLASYNC_GIT_URL}" "${src_dir}"
+git_clone_retry --depth 1 --recursive --shallow-submodules "${DXVK_GPLASYNC_GIT_URL}" "${src_dir}"
 
 if [[ ! -x "${src_dir}/package-release.sh" ]]; then
   printf '[aedxvk][warn] package-release.sh missing in GPLAsync checkout, falling back to upstream tag %s\n' "${resolved_tag}" >&2
   rm -rf "${src_dir}"
-  git_clone_retry --depth 1 --branch "${resolved_tag}" "${DXVK_UPSTREAM_GIT_URL}" "${src_dir}"
+  git_clone_retry --depth 1 --branch "${resolved_tag}" --recursive --shallow-submodules "${DXVK_UPSTREAM_GIT_URL}" "${src_dir}"
   selected_repo="${DXVK_UPSTREAM_GIT_URL}"
 fi
 

@@ -77,7 +77,7 @@ stage_dir="${wcp_root}/payload"
 mkdir -p "${build_dir}" "${stage_dir}/x64" "${stage_dir}/x86"
 
 resolved_tag="$(resolve_latest_v3_tag)"
-git_clone_retry --depth 1 --branch "${resolved_tag}" "${VKD3D_PROTON_GIT_URL}" "${src_dir}"
+git_clone_retry --depth 1 --branch "${resolved_tag}" --recursive --shallow-submodules "${VKD3D_PROTON_GIT_URL}" "${src_dir}"
 resolved_commit="$(git -C "${src_dir}" rev-parse HEAD)"
 resolved_short="${resolved_commit:0:12}"
 
