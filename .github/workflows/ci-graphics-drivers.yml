@@ -359,7 +359,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             git python3 zip tar xz-utils meson ninja-build \
-            mingw-w64 mingw-w64-tools wine64-tools g++-mingw-w64-x86-64 g++-mingw-w64-i686
+            mingw-w64 mingw-w64-tools wine64-tools g++-mingw-w64-x86-64 g++-mingw-w64-i686 \
+            glslang-tools spirv-tools
 
       - name: Build AeVKD3D-Proton source WCP
         run: |
