@@ -163,7 +163,7 @@ PY
 
 prepare_android_cutils_trace_stub() {
   local include_root="${1:?include root required}"
-  mkdir -p "${include_root}/android" "${include_root}/cutils" "${include_root}/log"
+  mkdir -p "${include_root}/android" "${include_root}/cutils" "${include_root}/log" "${include_root}/vndk"
   cat > "${include_root}/android/native_handle.h" <<'EOF_ANDROID_NATIVE_HANDLE_H'
 #ifndef ANDROID_NATIVE_HANDLE_H
 #define ANDROID_NATIVE_HANDLE_H
@@ -188,6 +188,18 @@ EOF_ANDROID_NATIVE_HANDLE_H
 
 #endif
 EOF_NATIVE_HANDLE_H
+  cat > "${include_root}/vndk/hardware_buffer.h" <<'EOF_VNDK_HARDWARE_BUFFER_H'
+#ifndef VNDK_HARDWARE_BUFFER_H
+#define VNDK_HARDWARE_BUFFER_H
+
+/*
+ * Mesa freedreno may include <vndk/hardware_buffer.h> on Android builds.
+ * NDK exposes <android/hardware_buffer.h>; provide a thin compatibility shim.
+ */
+#include <android/hardware_buffer.h>
+
+#endif
+EOF_VNDK_HARDWARE_BUFFER_H
   cat > "${include_root}/cutils/trace.h" <<'EOF_TRACE_H'
 #ifndef CUTILS_TRACE_H
 #define CUTILS_TRACE_H
