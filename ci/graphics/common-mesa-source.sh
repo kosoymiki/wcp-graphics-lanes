@@ -152,6 +152,42 @@ static inline void atrace_end(uint64_t tag)
 
 #endif
 EOF_TRACE_H
+  cat > "${include_root}/cutils/pthread_cancel_compat.h" <<'EOF_PTHREAD_CANCEL_COMPAT_H'
+#ifndef CUTILS_PTHREAD_CANCEL_COMPAT_H
+#define CUTILS_PTHREAD_CANCEL_COMPAT_H
+
+#include <pthread.h>
+
+/*
+ * Android bionic builds used in CI may omit pthread cancellation APIs.
+ * Mesa WSI display helpers reference them under X11 builds; provide no-op
+ * compat shims so Android cross-build can complete.
+ */
+#ifndef PTHREAD_CANCEL_ASYNCHRONOUS
+#define PTHREAD_CANCEL_ASYNCHRONOUS 1
+#endif
+
+#ifndef HAVE_PTHREAD_SETCANCELTYPE
+static inline int aeso_pthread_setcanceltype_compat(int type, int *oldtype)
+{
+  (void)type;
+  (void)oldtype;
+  return 0;
+}
+#define pthread_setcanceltype aeso_pthread_setcanceltype_compat
+#endif
+
+#ifndef HAVE_PTHREAD_CANCEL
+static inline int aeso_pthread_cancel_compat(pthread_t thread)
+{
+  (void)thread;
+  return 0;
+}
+#define pthread_cancel aeso_pthread_cancel_compat
+#endif
+
+#endif
+EOF_PTHREAD_CANCEL_COMPAT_H
   cat > "${include_root}/cutils/properties.h" <<'EOF_PROPERTIES_H'
 #ifndef CUTILS_PROPERTIES_H
 #define CUTILS_PROPERTIES_H
