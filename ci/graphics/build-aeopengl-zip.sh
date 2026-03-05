@@ -72,6 +72,7 @@ mesa_checkout_exact_commit "${source_dir}" "${MESA_MAIN_COMMIT}"
 patch_count="$(apply_mesa_patchset "${source_dir}" "${AEOPENGL_PATCHSET_DIR}" "opengl" "${patch_log}")"
 patches_json="$(lines_file_to_json_array "${patch_log}")"
 disable_freedreno_libarchive_fallback "${source_dir}"
+apply_android_wsi_pthread_cancel_compat "${source_dir}"
 android_trace_stub_dir="$(prepare_android_cutils_trace_stub "${WORK_DIR}/android-stubs")"
 
 write_mesa_android_x11_cross_file "${cross_file}" "${ndk_bin}" "${MESA_ANDROID_API_LEVEL}" "${pkg_config_wrapper}"
@@ -79,8 +80,8 @@ write_mesa_native_file "${native_file}"
 
 PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1 \
 PKG_CONFIG_ALLOW_SYSTEM_LIBS=1 \
-CFLAGS="-D__ANDROID__ -fPIC -I${android_trace_stub_dir} -include${android_trace_stub_dir}/cutils/pthread_cancel_compat.h" \
-CXXFLAGS="-D__ANDROID__ -fPIC -I${android_trace_stub_dir} -include${android_trace_stub_dir}/cutils/pthread_cancel_compat.h" \
+CFLAGS="-D__ANDROID__ -fPIC -I${android_trace_stub_dir}" \
+CXXFLAGS="-D__ANDROID__ -fPIC -I${android_trace_stub_dir}" \
 LDFLAGS="-Wl,-rpath,${MESA_TERMUX_RUNPATH}" \
 meson setup "${build_dir}" "${source_dir}" \
   --cross-file "${cross_file}" \

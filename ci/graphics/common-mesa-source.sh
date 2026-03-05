@@ -102,6 +102,51 @@ disable_freedreno_libarchive_fallback() {
     "${meson_file}"
 }
 
+apply_android_wsi_pthread_cancel_compat() {
+  local source_dir="${1:?source dir required}"
+  local target_file="${source_dir}/src/vulkan/wsi/wsi_common_display.c"
+
+  [[ -f "${target_file}" ]] || return 0
+  if grep -q 'AEO_WSI_PTHREAD_CANCEL_COMPAT' "${target_file}"; then
+    return 0
+  fi
+
+  python3 - <<'PY' "${target_file}"
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+text = path.read_text(encoding="utf-8")
+needle = "#include <pthread.h>\n"
+replacement = """#include <pthread.h>
+#if defined(__ANDROID__)
+/* AEO_WSI_PTHREAD_CANCEL_COMPAT: bionic may omit pthread cancellation APIs. */
+#ifndef PTHREAD_CANCEL_ASYNCHRONOUS
+#define PTHREAD_CANCEL_ASYNCHRONOUS 1
+#endif
+static inline int aeo_pthread_setcanceltype_compat(int type, int *oldtype)
+{
+   (void)type;
+   (void)oldtype;
+   return 0;
+}
+static inline int aeo_pthread_cancel_compat(pthread_t thread)
+{
+   (void)thread;
+   return 0;
+}
+#define pthread_setcanceltype aeo_pthread_setcanceltype_compat
+#define pthread_cancel aeo_pthread_cancel_compat
+#endif
+"""
+
+if needle not in text:
+    raise SystemExit("wsi_common_display.c does not contain expected pthread include marker")
+
+path.write_text(text.replace(needle, replacement, 1), encoding="utf-8")
+PY
+}
+
 prepare_android_cutils_trace_stub() {
   local include_root="${1:?include root required}"
   mkdir -p "${include_root}/android" "${include_root}/cutils" "${include_root}/log"
