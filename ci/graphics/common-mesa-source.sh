@@ -117,7 +117,6 @@ import sys
 
 path = pathlib.Path(sys.argv[1])
 text = path.read_text(encoding="utf-8")
-needle = "#include <pthread.h>\n"
 replacement = """#include <pthread.h>
 #if defined(__ANDROID__)
 /* AEO_WSI_PTHREAD_CANCEL_COMPAT: bionic may omit pthread cancellation APIs. */
@@ -140,10 +139,25 @@ static inline int aeo_pthread_cancel_compat(pthread_t thread)
 #endif
 """
 
-if needle not in text:
-    raise SystemExit("wsi_common_display.c does not contain expected pthread include marker")
+needle = "#include <pthread.h>\n"
+if needle in text:
+    path.write_text(text.replace(needle, replacement, 1), encoding="utf-8")
+    raise SystemExit(0)
 
-path.write_text(text.replace(needle, replacement, 1), encoding="utf-8")
+lines = text.splitlines(keepends=True)
+insert_at = None
+for idx, line in enumerate(lines[:200]):
+    if line.startswith("#include "):
+        insert_at = idx + 1
+        continue
+    if insert_at is not None and line.strip() and not line.startswith("#include "):
+        break
+
+if insert_at is None:
+    raise SystemExit("wsi_common_display.c does not contain include block for compat injection")
+
+lines.insert(insert_at, replacement)
+path.write_text("".join(lines), encoding="utf-8")
 PY
 }
 
