@@ -173,6 +173,18 @@ apply_android_clock_rt_compat() {
   fi
 }
 
+apply_android_glx_tls_symbol_compat() {
+  local source_dir="${1:?source dir required}"
+  local sym_file="${source_dir}/src/gallium/targets/libgl-xlib/libgl-xlib.sym"
+
+  [[ -f "${sym_file}" ]] || return 0
+  if grep -Eq '_mesa_glapi_tls_Dispatch|_glapi_tls_Dispatch' "${sym_file}"; then
+    # Android xlib lane can build without glapi TLS dispatch symbol; keeping it
+    # in version-script causes ld.lld to fail when symbol is not emitted.
+    sed -i -E '/_mesa_glapi_tls_Dispatch|_glapi_tls_Dispatch/d' "${sym_file}"
+  fi
+}
+
 prepare_android_cutils_trace_stub() {
   local include_root="${1:?include root required}"
   mkdir -p "${include_root}/android" "${include_root}/cutils" "${include_root}/log" "${include_root}/vndk" "${include_root}/sync"

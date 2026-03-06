@@ -74,6 +74,7 @@ patches_json="$(lines_file_to_json_array "${patch_log}")"
 disable_freedreno_libarchive_fallback "${source_dir}"
 apply_android_wsi_pthread_cancel_compat "${source_dir}"
 apply_android_clock_rt_compat "${source_dir}"
+apply_android_glx_tls_symbol_compat "${source_dir}"
 android_trace_stub_dir="$(prepare_android_cutils_trace_stub "${WORK_DIR}/android-stubs")"
 cat > "${android_trace_stub_dir}/libsync.h" <<'EOF_LIBSYNC'
 #ifndef AEOPENGL_LIBSYNC_STUB_H
