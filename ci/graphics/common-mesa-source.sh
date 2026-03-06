@@ -129,18 +129,6 @@ static inline int aeo_pthread_setcanceltype_compat(int type, int *oldtype)
    (void)oldtype;
    return 0;
 }
-
-apply_android_clock_rt_compat() {
-  local source_dir="${1:?source dir required}"
-  local meson_file="${source_dir}/meson.build"
-
-  [[ -f "${meson_file}" ]] || return 0
-  if grep -q "find_library('rt')" "${meson_file}"; then
-    # Android/bionic has clock_gettime in libc; forcing -lrt can fail on NDK
-    # toolchains where librt is not shipped as a separate archive.
-    sed -i -E "s/cc\\.find_library\\('rt'\\)/cc.find_library('rt', required : false)/g" "${meson_file}"
-  fi
-}
 static inline int aeo_pthread_cancel_compat(pthread_t thread)
 {
    (void)thread;
@@ -171,6 +159,18 @@ if insert_at is None:
 lines.insert(insert_at, replacement)
 path.write_text("".join(lines), encoding="utf-8")
 PY
+}
+
+apply_android_clock_rt_compat() {
+  local source_dir="${1:?source dir required}"
+  local meson_file="${source_dir}/meson.build"
+
+  [[ -f "${meson_file}" ]] || return 0
+  if grep -q "find_library('rt')" "${meson_file}"; then
+    # Android/bionic has clock_gettime in libc; forcing -lrt can fail on NDK
+    # toolchains where librt is not shipped as a separate archive.
+    sed -i -E "s/cc\\.find_library\\('rt'\\)/cc.find_library('rt', required : false)/g" "${meson_file}"
+  fi
 }
 
 prepare_android_cutils_trace_stub() {
