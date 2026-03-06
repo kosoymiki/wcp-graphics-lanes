@@ -1,22 +1,5 @@
 [
   {
-    "type": "Wine",
-    "internalType": "wine",
-    "verName": "11-arm64ec",
-    "verCode": 1,
-    "description": "FreeWine 11 ARM64EC (rolling)",
-    "channel": "stable",
-    "delivery": "remote",
-    "displayCategory": "Wine",
-    "sourceRepo": "kosoymiki/wcp-runtime-lanes",
-    "sourceType": "github-release",
-    "sourceVersion": "rolling-latest",
-    "releaseTag": "freewine11-arm64ec-latest",
-    "artifactName": "freewine11-arm64ec.wcp",
-    "remoteUrl": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/freewine11-arm64ec-latest/freewine11-arm64ec.wcp",
-    "sha256Url": "https://github.com/kosoymiki/wcp-runtime-lanes/releases/download/freewine11-arm64ec-latest/SHA256SUMS-freewine11-arm64ec.txt"
-  },
-  {
     "type": "VulkanSDK",
     "internalType": "vulkansdk",
     "verName": "1.4.341.1-arm64",
