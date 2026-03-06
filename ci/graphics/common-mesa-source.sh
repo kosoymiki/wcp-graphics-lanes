@@ -180,6 +180,42 @@ typedef struct native_handle
 
 #endif
 EOF_ANDROID_NATIVE_HANDLE_H
+  cat > "${include_root}/android/hardware_buffer.h" <<'EOF_ANDROID_HARDWARE_BUFFER_H'
+#ifndef AEO_ANDROID_HARDWARE_BUFFER_SHIM_H
+#define AEO_ANDROID_HARDWARE_BUFFER_SHIM_H
+
+/*
+ * Use the NDK header first, then provide API-guarded fallback symbols used by
+ * Mesa freedreno when cross-compiling against lower Android API levels.
+ */
+#if defined(__has_include_next)
+#  if __has_include_next(<android/hardware_buffer.h>)
+#    include_next <android/hardware_buffer.h>
+#  endif
+#else
+#  include <android/hardware_buffer.h>
+#endif
+
+#include <android/native_handle.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#if defined(__ANDROID__) && defined(__ANDROID_API__) && (__ANDROID_API__ < 31)
+static inline const native_handle_t *AHardwareBuffer_getNativeHandle(const AHardwareBuffer *buffer)
+{
+  (void)buffer;
+  return (const native_handle_t *)0;
+}
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+EOF_ANDROID_HARDWARE_BUFFER_H
   cat > "${include_root}/cutils/native_handle.h" <<'EOF_NATIVE_HANDLE_H'
 #ifndef CUTILS_NATIVE_HANDLE_H
 #define CUTILS_NATIVE_HANDLE_H
