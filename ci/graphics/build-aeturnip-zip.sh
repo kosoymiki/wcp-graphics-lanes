@@ -55,6 +55,7 @@ patch_count="$(apply_mesa_patchset "${source_dir}" "${AETURNIP_PATCHSET_DIR}" "t
 patches_json="$(lines_file_to_json_array "${patch_log}")"
 disable_freedreno_libarchive_fallback "${source_dir}"
 apply_android_wsi_pthread_cancel_compat "${source_dir}"
+apply_android_clock_rt_compat "${source_dir}"
 android_trace_stub_dir="$(prepare_android_cutils_trace_stub "${WORK_DIR}/android-stubs")"
 
 write_mesa_android_cross_file "${cross_file}" "${ndk_bin}" "${MESA_ANDROID_API_LEVEL}"
