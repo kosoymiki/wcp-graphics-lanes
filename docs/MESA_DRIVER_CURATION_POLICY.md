@@ -31,11 +31,12 @@ This document defines the build contract for `AeTurnip` and `AeOpenGLDriver`.
 ## AeOpenGLDriver Lane
 
 - Format: `profile.json` ZIP (`aeopengl-driver-arm64.zip`) for `Contents`.
-- Build target: Android aarch64 with X11 fallback route for `libGL`/`libglapi`.
+- Build target: Android aarch64 with X11 fallback route for `libGL`.
+- `libglapi` is packaged only when Mesa emits a shared `libglapi.so`; static embedding is accepted.
 - Dependency sysroot: resolved from Termux AArch64 package index at build time.
 - Output contract:
   - `usr/lib/libGL.so.1.5.0`
-  - `usr/lib/libglapi.so.0.0.0`
+  - optional: `usr/lib/libglapi.so.0.0.0`
   - `profile.json`
   - `mesa-source.json`
 - Patch intake:

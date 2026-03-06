@@ -7,6 +7,25 @@ source "${ROOT_DIR}/ci/graphics/common-mesa.sh"
 # shellcheck disable=SC1091
 source "${ROOT_DIR}/ci/graphics/common-mesa-source.sh"
 
+resolve_first_install_lib() {
+  local root="$1"
+  shift
+
+  local pattern
+  local candidate
+  for pattern in "$@"; do
+    candidate="$(
+      find "${root}" \( -type f -o -type l \) -name "${pattern}" | LC_ALL=C sort | head -n 1
+    )"
+    if [[ -n "${candidate}" ]]; then
+      printf '%s\n' "${candidate}"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
 OUT_DIR="${1:-$PWD/out}"
 WORK_DIR="${2:-/tmp/aeopengl-zip-work}"
 
@@ -143,30 +162,34 @@ meson setup "${build_dir}" "${source_dir}" \
 
 ninja -C "${build_dir}" -j "${MESA_BUILD_JOBS:-$(nproc)}" install
 
-libgl_source="$(find "${install_dir}" -type f -name 'libGL.so.1.5.0' | LC_ALL=C sort | head -n 1)"
-if [[ -z "${libgl_source}" ]]; then
-  libgl_source="$(find "${install_dir}" -type f -name 'libGL.so.*' | LC_ALL=C sort | head -n 1)"
-fi
+libgl_source="$(resolve_first_install_lib "${install_dir}" 'libGL.so.1.5.0' 'libGL.so.*' 'libGL.so' || true)"
+libglapi_source="$(resolve_first_install_lib "${install_dir}" 'libglapi.so.0.0.0' 'libglapi.so.*' 'libglapi.so' || true)"
 
-libglapi_source="$(find "${install_dir}" -type f -name 'libglapi.so.0.0.0' | LC_ALL=C sort | head -n 1)"
-if [[ -z "${libglapi_source}" ]]; then
-  libglapi_source="$(find "${install_dir}" -type f -name 'libglapi.so.*' | LC_ALL=C sort | head -n 1)"
-fi
-
-if [[ -z "${libgl_source}" || ! -f "${libgl_source}" ]]; then
+if [[ -z "${libgl_source}" || ! -e "${libgl_source}" ]]; then
   printf '[aeopengl][error] source build did not produce libGL\n' >&2
-  exit 1
-fi
-if [[ -z "${libglapi_source}" || ! -f "${libglapi_source}" ]]; then
-  printf '[aeopengl][error] source build did not produce libglapi\n' >&2
   exit 1
 fi
 
 cp -a "${libgl_source}" "${WORK_DIR}/stage/usr/lib/libGL.so.1.5.0"
-cp -a "${libglapi_source}" "${WORK_DIR}/stage/usr/lib/libglapi.so.0.0.0"
 
 resolved_libgl_name="$(basename -- "${libgl_source}")"
-resolved_libglapi_name="$(basename -- "${libglapi_source}")"
+resolved_libglapi_name="embedded-static"
+profile_files_json='[
+    {"source": "usr/lib/libGL.so.1.5.0", "target": "${libdir}/libGL.so.1.5.0"},
+    {"source": "usr/lib/libGL.so.1.5.0", "target": "${libdir}/libGL.so.1"}
+'
+
+if [[ -n "${libglapi_source}" && -e "${libglapi_source}" ]]; then
+  cp -a "${libglapi_source}" "${WORK_DIR}/stage/usr/lib/libglapi.so.0.0.0"
+  resolved_libglapi_name="$(basename -- "${libglapi_source}")"
+  profile_files_json+=',
+    {"source": "usr/lib/libglapi.so.0.0.0", "target": "${libdir}/libglapi.so.0.0.0"},
+    {"source": "usr/lib/libglapi.so.0.0.0", "target": "${libdir}/libglapi.so.0"}
+'
+fi
+
+profile_files_json+='
+  ]'
 
 cat > "${WORK_DIR}/stage/mesa-source.json" <<EOF_SOURCE
 {
@@ -250,12 +273,7 @@ cat > "${WORK_DIR}/stage/profile.json" <<EOF_PROFILE
   "releaseTag": "$(json_escape "${AEOPENGL_RELEASE_TAG}")",
   "artifactName": "$(json_escape "${AEOPENGL_ARTIFACT_NAME}")",
   "sha256Url": "https://github.com/$(json_escape "${AEOPENGL_SOURCE_REPO}")/releases/download/$(json_escape "${AEOPENGL_RELEASE_TAG}")/$(json_escape "${AEOPENGL_SHA256_ARTIFACT_NAME}")",
-  "files": [
-    {"source": "usr/lib/libGL.so.1.5.0", "target": "\${libdir}/libGL.so.1.5.0"},
-    {"source": "usr/lib/libGL.so.1.5.0", "target": "\${libdir}/libGL.so.1"},
-    {"source": "usr/lib/libglapi.so.0.0.0", "target": "\${libdir}/libglapi.so.0.0.0"},
-    {"source": "usr/lib/libglapi.so.0.0.0", "target": "\${libdir}/libglapi.so.0"}
-  ],
+  "files": ${profile_files_json},
   "mesaSource": {
     "resolvedStableVersion": "$(json_escape "${MESA_STABLE_VERSION}")",
     "resolvedStableTag": "$(json_escape "${MESA_STABLE_TAG}")",
