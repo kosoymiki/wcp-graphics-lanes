@@ -111,14 +111,30 @@ cat > "${WORK_DIR}/normalized/meta.json" <<EOF_META_JSON
   "minApi": ${AETURNIP_MIN_API},
   "libraryName": "libvulkan_freedreno.so",
   "provider": "aeturnip",
+  "providerLane": "turnip-vulkan",
+  "driverRoute": "vulkan-first",
+  "graphicsStackProfile": "vulkan-first-with-gl-fallback",
+  "companionProviderLane": "freedreno-opengl",
+  "preferredGalliumDriver": "zink",
+  "libraryType": "vulkan-icd",
+  "archiveFormat": "adrenotools-graphics-provider-v2",
+  "archiveLayout": "flat-driver-contract",
+  "installSurface": "graphics-center",
   "channel": "$(json_escape "${AETURNIP_CHANNEL}")",
   "sourceRepo": "$(json_escape "${AETURNIP_SOURCE_REPO}")",
   "sourceType": "mesa-source-build",
   "sourceVersion": "main-head-exact",
+  "artifactName": "$(json_escape "${AETURNIP_ARTIFACT_NAME}")",
+  "releaseTag": "$(json_escape "${AETURNIP_RELEASE_TAG}")",
   "mesaMainCommit": "$(json_escape "${MESA_MAIN_COMMIT}")",
   "mesaStableTag": "$(json_escape "${MESA_STABLE_TAG}")",
   "mesaSourceArchive": "$(json_escape "${MESA_ARCHIVE_URL}")",
-  "appliedPatchCount": ${patch_count}
+  "appliedPatchCount": ${patch_count},
+  "translationLayers": ["dxvk", "vkd3d-proton", "wined3d", "zink"],
+  "apiFocus": ["dx9", "dx10", "dx11", "dx12", "vulkan"],
+  "forensicEnvPrefixes": ["AERO_TURNIP_", "AERO_UPSCALE_", "AERO_DXVK_", "AERO_VKD3D_", "AERO_X11_"],
+  "forensicLogPrefixes": ["graphics_mesa", "turnip_mesa"],
+  "files": []
 }
 EOF_META_JSON
 
@@ -128,9 +144,13 @@ cat > "${WORK_DIR}/normalized/ae-runtime-contract.json" <<EOF_RUNTIME
   "lane": "aeturnip",
   "role": "graphics-provider",
   "freewineLane": "freewine11-arm64ec",
+  "installSurface": "graphics-center",
+  "archiveFormat": "adrenotools-graphics-provider-v2",
+  "archiveLayout": "flat-driver-contract",
   "providerLane": "turnip-vulkan",
   "translationLayers": ["dxvk", "vkd3d-proton", "wined3d", "zink"],
   "driverRoute": "vulkan-first",
+  "preferredGalliumDriver": "zink",
   "providerRoutePolicy": {
     "primary": "turnip-vulkan",
     "fallback": "freedreno-opengl",
@@ -156,6 +176,7 @@ cat > "${WORK_DIR}/normalized/ae-runtime-contract.json" <<EOF_RUNTIME
   },
   "forensic": {
     "requiredEnvPrefixes": ["AERO_TURNIP_", "AERO_UPSCALE_", "AERO_DXVK_", "AERO_VKD3D_", "AERO_X11_"],
+    "logPrefixes": ["graphics_mesa", "turnip_mesa"],
     "requiredEvents": [
       "RUNTIME_UPSCALE_RUNTIME_MATRIX",
       "RUNTIME_DX_ROUTE_POLICY",

@@ -39,6 +39,11 @@ WORK_DIR="${2:-/tmp/aeopengl-zip-work}"
 : "${AEOPENGL_SHA256_ARTIFACT_NAME:=SHA256SUMS-aeopengl-driver-arm64.txt}"
 : "${AEOPENGL_RELEASE_NOTES_NAME:=RELEASE_NOTES-aeopengl-driver.md}"
 : "${AEOPENGL_PATCHSET_DIR:=${ROOT_DIR}/ci/graphics/mesa-patches}"
+: "${AEOPENGL_PACKAGE_VENDOR:=Mesa}"
+: "${AEOPENGL_PACKAGE_AUTHOR:=AeOpenGL source-build lane}"
+: "${AEOPENGL_PACKAGE_DESCRIPTION:=AeOpenGL ARM64 source-built from Mesa main}"
+: "${AEOPENGL_PACKAGE_VERSION:=1}"
+: "${AEOPENGL_MIN_API:=28}"
 
 mkdir -p "${OUT_DIR}" "${WORK_DIR}"
 rm -rf "${WORK_DIR}/stage" "${WORK_DIR}/mesa-src" "${WORK_DIR}/build-opengl" "${WORK_DIR}/install-opengl" "${WORK_DIR}/termux-sysroot"
@@ -217,22 +222,73 @@ cat > "${WORK_DIR}/stage/mesa-source.json" <<EOF_SOURCE
 }
 EOF_SOURCE
 
+cat > "${WORK_DIR}/stage/meta.json" <<EOF_META_JSON
+{
+  "schemaVersion": 1,
+  "name": "$(json_escape "${AEOPENGL_VERSION_NAME}")",
+  "description": "$(json_escape "${AEOPENGL_PACKAGE_DESCRIPTION}")",
+  "author": "$(json_escape "${AEOPENGL_PACKAGE_AUTHOR}")",
+  "packageVersion": "$(json_escape "${AEOPENGL_PACKAGE_VERSION}")",
+  "vendor": "$(json_escape "${AEOPENGL_PACKAGE_VENDOR}")",
+  "driverVersion": "$(json_escape "${MESA_STABLE_VERSION}-main-${MESA_MAIN_SHORT}")",
+  "minApi": ${AEOPENGL_MIN_API},
+  "libraryName": "libGL.so.1.5.0",
+  "provider": "aeopengl",
+  "providerLane": "freedreno-opengl",
+  "driverRoute": "native-gl",
+  "graphicsStackProfile": "vulkan-first-with-gl-fallback",
+  "companionProviderLane": "turnip-vulkan",
+  "preferredGalliumDriver": "freedreno",
+  "libraryType": "opengl-overlay",
+  "archiveFormat": "adrenotools-graphics-provider-v2",
+  "archiveLayout": "flat-driver-contract",
+  "installSurface": "graphics-center",
+  "channel": "$(json_escape "${AEOPENGL_CHANNEL}")",
+  "sourceRepo": "$(json_escape "${AEOPENGL_SOURCE_REPO}")",
+  "sourceType": "mesa-source-build",
+  "sourceVersion": "main-head-exact",
+  "artifactName": "$(json_escape "${AEOPENGL_ARTIFACT_NAME}")",
+  "releaseTag": "$(json_escape "${AEOPENGL_RELEASE_TAG}")",
+  "mesaMainCommit": "$(json_escape "${MESA_MAIN_COMMIT}")",
+  "mesaStableTag": "$(json_escape "${MESA_STABLE_TAG}")",
+  "mesaSourceArchive": "$(json_escape "${MESA_ARCHIVE_URL}")",
+  "appliedPatchCount": ${patch_count},
+  "translationLayers": ["wined3d", "zink", "dxvk", "vkd3d-proton"],
+  "apiFocus": ["opengl", "opengles", "ddraw", "d3d1", "d3d2", "d3d3", "d3d5", "d3d6", "d3d7", "glide"],
+  "forensicEnvPrefixes": ["AERO_OPENGL_", "AERO_UPSCALE_", "AERO_DXVK_", "AERO_VKD3D_", "AERO_WINE_"],
+  "forensicLogPrefixes": ["graphics_mesa", "turnip_mesa"],
+  "files": ${profile_files_json}
+}
+EOF_META_JSON
+
 cat > "${WORK_DIR}/stage/ae-runtime-contract.json" <<EOF_RUNTIME
 {
   "schemaVersion": 2,
   "lane": "aeopengl-driver",
   "role": "graphics-provider",
   "freewineLane": "freewine11-arm64ec",
+  "installSurface": "graphics-center",
+  "archiveFormat": "adrenotools-graphics-provider-v2",
+  "archiveLayout": "flat-driver-contract",
   "providerLane": "freedreno-opengl",
   "translationLayers": ["wined3d", "zink", "dxvk", "vkd3d-proton"],
   "graphicsStackProfile": "vulkan-first-with-gl-fallback",
+  "driverRoute": "native-gl",
+  "preferredGalliumDriver": "freedreno",
   "providerRoutePolicy": {
     "primary": "freedreno-opengl",
     "companion": "turnip-vulkan",
     "promotionRule": "prefer-turnip-for-dxvk-vkd3d"
   },
+  "compatibility": {
+    "runtime": ["freewine11-arm64ec"],
+    "translationLayers": ["wined3d", "zink", "dxvk", "vkd3d-proton"],
+    "apiFocus": ["opengl", "opengles", "ddraw", "d3d1", "d3d2", "d3d3", "d3d5", "d3d6", "d3d7", "glide"],
+    "vulkanCompanionLane": "aeturnip-arm64"
+  },
   "forensic": {
     "requiredEnvPrefixes": ["AERO_OPENGL_", "AERO_UPSCALE_", "AERO_DXVK_", "AERO_VKD3D_", "AERO_WINE_"],
+    "logPrefixes": ["graphics_mesa", "turnip_mesa"],
     "requiredEvents": [
       "RUNTIME_UPSCALE_RUNTIME_MATRIX",
       "RUNTIME_DX_ROUTE_POLICY",
@@ -309,7 +365,7 @@ cat > "${release_notes}" <<EOF_NOTES
 AeOpenGLDriver ARM64 source-built ZIP overlay
 
 RU:
-- Формат: profile.zip, ставится через Winlator Contents
+- Формат: adrenotools ZIP, ставится через Ae.solator Graphics Center
 - Payload: Mesa source build (x11 OpenGL fallback for Android aarch64)
 - Mesa exact main ref: ${MESA_MAIN_COMMIT}
 - Mesa nearest stable tag: ${MESA_STABLE_TAG}
@@ -319,7 +375,7 @@ RU:
 - Resolved libglapi source: ${resolved_libglapi_name}
 
 EN:
-- Format: profile.zip, installable via Winlator Contents
+- Format: adrenotools ZIP, installable via Ae.solator Graphics Center
 - Payload: Mesa source build (x11 OpenGL fallback for Android aarch64)
 - Mesa exact main ref: ${MESA_MAIN_COMMIT}
 - Mesa nearest stable tag: ${MESA_STABLE_TAG}
