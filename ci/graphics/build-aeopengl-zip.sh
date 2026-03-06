@@ -81,8 +81,8 @@ write_mesa_native_file "${native_file}"
 
 PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1 \
 PKG_CONFIG_ALLOW_SYSTEM_LIBS=1 \
-CFLAGS="-D__ANDROID__ -fPIC -I${android_trace_stub_dir} -include libsync.h" \
-CXXFLAGS="-D__ANDROID__ -fPIC -I${android_trace_stub_dir} -include libsync.h" \
+CFLAGS="-D__ANDROID__ -fPIC -I${android_trace_stub_dir}" \
+CXXFLAGS="-D__ANDROID__ -fPIC -I${android_trace_stub_dir}" \
 LDFLAGS="-Wl,-rpath,${MESA_TERMUX_RUNPATH}" \
 meson setup "${build_dir}" "${source_dir}" \
   --cross-file "${cross_file}" \
