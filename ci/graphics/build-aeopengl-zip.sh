@@ -75,14 +75,46 @@ disable_freedreno_libarchive_fallback "${source_dir}"
 apply_android_wsi_pthread_cancel_compat "${source_dir}"
 apply_android_clock_rt_compat "${source_dir}"
 android_trace_stub_dir="$(prepare_android_cutils_trace_stub "${WORK_DIR}/android-stubs")"
+cat > "${android_trace_stub_dir}/libsync.h" <<'EOF_LIBSYNC'
+#ifndef AEOPENGL_LIBSYNC_STUB_H
+#define AEOPENGL_LIBSYNC_STUB_H
+
+#include <errno.h>
+#include <poll.h>
+
+static inline int sync_wait(int fd, int timeout_ms)
+{
+    struct pollfd pfd;
+    int ret;
+
+    pfd.fd = fd;
+    pfd.events = POLLIN;
+    pfd.revents = 0;
+
+    do
+    {
+        ret = poll(&pfd, 1, timeout_ms);
+    } while (ret < 0 && errno == EINTR);
+
+    if (ret == 0)
+    {
+        errno = ETIME;
+        return -1;
+    }
+
+    return (ret < 0) ? -1 : 0;
+}
+
+#endif /* AEOPENGL_LIBSYNC_STUB_H */
+EOF_LIBSYNC
 
 write_mesa_android_x11_cross_file "${cross_file}" "${ndk_bin}" "${MESA_ANDROID_API_LEVEL}" "${pkg_config_wrapper}"
 write_mesa_native_file "${native_file}"
 
 PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1 \
 PKG_CONFIG_ALLOW_SYSTEM_LIBS=1 \
-CFLAGS="-D__ANDROID__ -fPIC -I${android_trace_stub_dir}" \
-CXXFLAGS="-D__ANDROID__ -fPIC -I${android_trace_stub_dir}" \
+CFLAGS="-D__ANDROID__ -fPIC -I${android_trace_stub_dir} -include libsync.h" \
+CXXFLAGS="-D__ANDROID__ -fPIC -I${android_trace_stub_dir} -include libsync.h" \
 LDFLAGS="-Wl,-rpath,${MESA_TERMUX_RUNPATH}" \
 meson setup "${build_dir}" "${source_dir}" \
   --cross-file "${cross_file}" \
