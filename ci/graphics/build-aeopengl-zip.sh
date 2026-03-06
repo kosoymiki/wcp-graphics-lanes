@@ -115,7 +115,7 @@ PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1 \
 PKG_CONFIG_ALLOW_SYSTEM_LIBS=1 \
 CFLAGS="-D__ANDROID__ -fPIC -I${android_trace_stub_dir} -include libsync.h" \
 CXXFLAGS="-D__ANDROID__ -fPIC -I${android_trace_stub_dir} -include libsync.h" \
-LDFLAGS="-Wl,-rpath,${MESA_TERMUX_RUNPATH} -llog -landroid-shmem" \
+LDFLAGS="-Wl,-rpath,${MESA_TERMUX_RUNPATH} -llog -Wl,--no-as-needed -landroid-shmem -Wl,--as-needed" \
 meson setup "${build_dir}" "${source_dir}" \
   --cross-file "${cross_file}" \
   --native-file "${native_file}" \
