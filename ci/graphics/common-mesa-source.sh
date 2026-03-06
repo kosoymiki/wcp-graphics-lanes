@@ -464,8 +464,6 @@ c = '${ndk_bin}/${target}${api_level}-clang'
 cpp = '${ndk_bin}/${target}${api_level}-clang++'
 strip = '${ndk_bin}/llvm-strip'
 pkg-config = '/usr/bin/pkg-config'
-c_ld = '${ndk_bin}/ld.lld'
-cpp_ld = '${ndk_bin}/ld.lld'
 
 [host_machine]
 system = 'android'
@@ -489,8 +487,6 @@ c = '${ndk_bin}/${target}${api_level}-clang'
 cpp = '${ndk_bin}/${target}${api_level}-clang++'
 strip = '${ndk_bin}/llvm-strip'
 pkg-config = '${pkg_config_wrapper}'
-c_ld = '${ndk_bin}/ld.lld'
-cpp_ld = '${ndk_bin}/ld.lld'
 
 [host_machine]
 system = 'android'
