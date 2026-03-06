@@ -163,7 +163,7 @@ PY
 
 prepare_android_cutils_trace_stub() {
   local include_root="${1:?include root required}"
-  mkdir -p "${include_root}/android" "${include_root}/cutils" "${include_root}/log" "${include_root}/vndk"
+  mkdir -p "${include_root}/android" "${include_root}/cutils" "${include_root}/log" "${include_root}/vndk" "${include_root}/sync"
   cat > "${include_root}/android/native_handle.h" <<'EOF_ANDROID_NATIVE_HANDLE_H'
 #ifndef ANDROID_NATIVE_HANDLE_H
 #define ANDROID_NATIVE_HANDLE_H
@@ -259,6 +259,64 @@ static inline void atrace_end(uint64_t tag)
 
 #endif
 EOF_TRACE_H
+  cat > "${include_root}/sync/sync.h" <<'EOF_SYNC_H'
+#ifndef AEO_SYNC_SHIM_H
+#define AEO_SYNC_SHIM_H
+
+#if defined(__has_include_next)
+#  if __has_include_next(<sync/sync.h>)
+#    include_next <sync/sync.h>
+#  endif
+#endif
+
+#include <errno.h>
+#include <poll.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifndef SYNC_WAIT_FOREVER
+#define SYNC_WAIT_FOREVER (-1)
+#endif
+
+#ifndef ETIME
+#define ETIME ETIMEDOUT
+#endif
+
+/*
+ * Android NDK/headers on CI can miss sync_wait declaration for the Mesa
+ * freedreno KGSL path. Provide a small poll-based fallback.
+ */
+static inline int aeo_sync_wait_compat(int fd, int timeout_ms)
+{
+  struct pollfd pfd;
+  int ret;
+  pfd.fd = fd;
+  pfd.events = POLLIN;
+  pfd.revents = 0;
+  do {
+    ret = poll(&pfd, 1, timeout_ms);
+  } while (ret < 0 && errno == EINTR);
+
+  if (ret > 0) return 0;
+  if (ret == 0) {
+    errno = ETIME;
+    return -1;
+  }
+  return -1;
+}
+
+#ifndef sync_wait
+#define sync_wait aeo_sync_wait_compat
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+EOF_SYNC_H
   cat > "${include_root}/cutils/pthread_cancel_compat.h" <<'EOF_PTHREAD_CANCEL_COMPAT_H'
 #ifndef CUTILS_PTHREAD_CANCEL_COMPAT_H
 #define CUTILS_PTHREAD_CANCEL_COMPAT_H

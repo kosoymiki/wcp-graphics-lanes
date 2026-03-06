@@ -60,8 +60,8 @@ android_trace_stub_dir="$(prepare_android_cutils_trace_stub "${WORK_DIR}/android
 write_mesa_android_cross_file "${cross_file}" "${ndk_bin}" "${MESA_ANDROID_API_LEVEL}"
 write_mesa_native_file "${native_file}"
 
-CFLAGS="-fPIC -I${android_trace_stub_dir}" \
-CXXFLAGS="-fPIC -I${android_trace_stub_dir}" \
+CFLAGS="-fPIC -I${android_trace_stub_dir} -include sync/sync.h" \
+CXXFLAGS="-fPIC -I${android_trace_stub_dir} -include sync/sync.h" \
 meson setup "${build_dir}" "${source_dir}" \
   --cross-file "${cross_file}" \
   --native-file "${native_file}" \
