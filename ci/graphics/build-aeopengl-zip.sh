@@ -137,6 +137,7 @@ meson setup "${build_dir}" "${source_dir}" \
   -Dfreedreno-kmds=kgsl \
   -Dspirv-tools=disabled \
   -Dzstd=disabled \
+  -Dtools=[] \
   -Dshared-glapi=enabled
 
 ninja -C "${build_dir}" -j "${MESA_BUILD_JOBS:-$(nproc)}" install
