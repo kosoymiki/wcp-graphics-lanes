@@ -2,6 +2,12 @@
 
 This repo stores graphics/package-lane documentation only.
 
+## Current Contract
+
+- Provider/graphics lane source-of-truth for Ae.solator.
+- Not the source-of-truth for `FreeWine 11`.
+- Works alongside `wcp-runtime-lanes`, which remains the archive host.
+
 ## Source Of Truth
 
 - `docs/REPO_SPLIT_TOPOLOGY.md` - split topology and lane ownership.

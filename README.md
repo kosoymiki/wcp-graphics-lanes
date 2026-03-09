@@ -16,6 +16,16 @@ Graphics build/control repository for Ae.solator.
   - `wrapperContract`
   - `ae-runtime-wrapper.env`
 
+## Current Mainline State
+
+- This repository owns graphics/provider package lanes, not the main runtime.
+- Runtime source-of-truth remains `freewine11`.
+- Archive/release host for runtime/APK remains `wcp-runtime-lanes`.
+- This repository is the source-of-truth for:
+  - AeTurnip ZIP
+  - AeOpenGLDriver ZIP
+  - graphics-side wrapper/package lane build logic
+
 ## Release Routing
 
 - Release host in this repo:
